@@ -60,7 +60,6 @@ async function fetchJson(url, ms = 15000) {
   }
 }
 
-// ★ 新增：深度解析 4399 的嵌套 JSON 结构，提取 sauth_json
 function pickCookies(obj) {
   if (!obj) return "";
 
@@ -71,25 +70,32 @@ function pickCookies(obj) {
     if (typeof v === "string" && v.trim()) return v;
   }
 
-  // 2. 专门针对 4399 的 data.sauth_json 结构
+  // 2. 针对 4399 的 data.sauth_json 结构，直接转成单行 key=value; 格式
   if (obj.data) {
     let dataObj = obj.data;
     if (typeof dataObj === "string") {
       try { dataObj = JSON.parse(dataObj); } catch (e) { return obj.data; }
     }
+    
     if (dataObj && typeof dataObj === "object" && dataObj.sauth_json) {
       try {
         const sauthObj = JSON.parse(dataObj.sauth_json);
-        return JSON.stringify(sauthObj, null, 2);
+        // 转成 a=b; c=d 的单行格式
+        return Object.keys(sauthObj).map(k => {
+          let v = sauthObj[k];
+          // 如果值是对象，转成紧凑的 JSON 字符串
+          if (v && typeof v === "object") v = JSON.stringify(v);
+          return `${k}=${v}`;
+        }).join('; ');
       } catch (e) {
         return dataObj.sauth_json;
       }
     }
-    return typeof dataObj === "object" ? JSON.stringify(dataObj, null, 2) : dataObj;
+    return typeof dataObj === "object" ? JSON.stringify(dataObj) : dataObj;
   }
 
-  // 3. 兜底
-  return JSON.stringify(obj, null, 2);
+  // 3. 兜底：压成单行 JSON
+  return JSON.stringify(obj);
 }
 
 function chooseChannel(url) {
