@@ -1,5 +1,10 @@
+// ============================================================
+//  4399 通道代理 Worker (KV动态管理版 + 状态查询 + 风控)
+//  绑定 KV 变量名: 4399kv
+// ============================================================
+
 const API = "https://api.4399pc.cc";
-const ALLOWED_ORIGIN = "https://cookie.xtz1.top";
+const ALLOWED_ORIGIN = "https://cookie.xtz1.top"; 
 const DAILY_LIMIT = 20;
 
 function corsHeaders(origin) {
@@ -84,9 +89,9 @@ async function doConvertWithRetry(key, username, password) {
   return last;
 }
 
-// Turnstile 验证
+// 后端 Turnstile 验证
 async function verifyTurnstile(token, secret) {
-  if (!secret) return true; // 未配置则跳过
+  if (!secret) return true; 
   const formData = new FormData();
   formData.append('secret', secret);
   formData.append('response', token);
@@ -178,12 +183,15 @@ export default {
         let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active" };
         if (user.date !== getTodayStr()) user.count = 0;
 
+        let config = JSON.parse(await kv.get("config") || "{}");
+
         return json({
           ok: true,
           remaining: Math.max(0, DAILY_LIMIT - user.count),
           used: user.count,
           totalUsers: Object.keys(users).length,
-          status: user.status
+          status: user.status,
+          turnstile_site_key: config.turnstile_site_key || "" // 提供给前端渲染
         }, 200, origin);
       }
 
