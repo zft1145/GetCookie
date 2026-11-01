@@ -1,5 +1,5 @@
 // ============================================================
-//  4399 通道代理 Worker（自动重试 + 深层 JSON 解析）
+//  4399 通道代理 Worker（单行 JSON + 随机通道 + 自动重试）
 // ============================================================
 
 // 密钥（字符反转混淆）
@@ -60,37 +60,36 @@ async function fetchJson(url, ms = 15000) {
   }
 }
 
+// ★ 输出单行、带 {} 的 JSON 字符串
 function pickCookies(obj) {
   if (!obj) return "";
 
-  // 1. 尝试找常规 cookie 字段
   const names = ["cookies", "cookie", "cookie_str", "cookieStr", "cookies_str"];
   for (const n of names) {
     const v = obj[n];
     if (typeof v === "string" && v.trim()) return v;
   }
 
-  // 2. 针对 4399 的 data.sauth_json 结构，直接输出单行带大括号的 JSON
   if (obj.data) {
     let dataObj = obj.data;
     if (typeof dataObj === "string") {
       try { dataObj = JSON.parse(dataObj); } catch (e) { return obj.data; }
     }
-    
     if (dataObj && typeof dataObj === "object" && dataObj.sauth_json) {
       try {
-        // 解析出内层对象
         const sauthObj = JSON.parse(dataObj.sauth_json);
-        // 直接 Stringify，不加 null, 2，这样就是紧凑的单行 JSON，带 {}
-        return JSON.stringify(sauthObj);
+        return JSON.stringify(sauthObj); // 单行 JSON
       } catch (e) {
         return dataObj.sauth_json;
       }
     }
   }
-
-  // 3. 兜底：直接把整个对象转成单行 JSON
   return JSON.stringify(obj);
+}
+
+// 随机选择通道
+function chooseChannel() {
+  return Math.floor(Math.random() * KEYS.length) + 1;
 }
 
 async function doClaim(key) {
@@ -108,33 +107,19 @@ async function doConvertOnce(key, username, password, useParam) {
   return fetchJson(u.toString(), 20000);
 }
 
-// 带重试的转换：最多 3 次，间隔 0 / 1.2s / 2.5s
 async function doConvertWithRetry(key, username, password, useParam = "pc") {
   const delays = [0, 1200, 2500];
   let last = null;
-
   for (let i = 0; i < delays.length; i++) {
     if (delays[i]) await new Promise(r => setTimeout(r, delays[i]));
-
     const r = await doConvertOnce(key, username, password, useParam);
     const d = r.data;
-
-    if (d && d.code === 1) {
-      return { ...r, attempts: i + 1 };
-    }
-
+    if (d && d.code === 1) return { ...r, attempts: i + 1 };
     last = { ...r, attempts: i + 1 };
-
-    // 已扣费，不再重试
     if (d && d.charged === true) return last;
-
-    // 非临时错误不重试
     const msg = (d && d.msg) || "";
-    if (/额度|quota|invalid|unauthor|forbidden|not\s*found/i.test(msg)) {
-      return last;
-    }
+    if (/额度|quota|invalid|unauthor|forbidden|not\s*found/i.test(msg)) return last;
   }
-
   return last;
 }
 
@@ -149,70 +134,14 @@ export default {
 
     const path = url.pathname;
 
-    // ---------- /claim ----------
-    if (path === "/claim") {
-      const channel = chooseChannel(url);
-      const key = KEYS[channel - 1];
-      try {
-        const { data, elapsed } = await doClaim(key);
-        if (!data || data.code !== 1) {
-          return json({ ok: false, stage: "claim", channel, error: (data && data.msg) || "领取失败", elapsed }, 200, origin);
-        }
-        return json({
-          ok: true, stage: "claim", channel,
-          username: data.username, password: data.password,
-          remaining: data.remaining ?? null, quotaLimit: data.quota_limit ?? null,
-          usedCount: data.used_count ?? null, elapsed
-        }, 200, origin);
-      } catch (e) {
-        return json({ ok: false, stage: "claim", channel, error: e.message }, 200, origin);
-      }
-    }
-
-    // ---------- /convert ----------
-    if (path === "/convert") {
-      const channel = chooseChannel(url);
-      const key = KEYS[channel - 1];
-      const username = url.searchParams.get("username") || "";
-      const password = url.searchParams.get("password") || "";
-      const useParam = url.searchParams.get("use"); // null | "pc" | "none"
-
-      if (!username || !password) {
-        return json({ ok: false, stage: "convert", channel, error: "缺少 username 或 password" }, 400, origin);
-      }
-
-      const use = useParam === null ? "pc" : (useParam === "none" ? null : useParam);
-
-      try {
-        const { data, elapsed, attempts } = await doConvertWithRetry(key, username, password, use);
-        if (!data || data.code !== 1) {
-          return json({
-            ok: false, stage: "convert", channel,
-            error: (data && data.msg) || "转换失败",
-            username, password, elapsed, attempts,
-            httpCode: data && data.http_code, charged: data && data.charged,
-            upstream: data && data.data
-          }, 200, origin);
-        }
-        const cookies = pickCookies(data);
-        return json({
-          ok: true, stage: "convert", channel,
-          username, password, cookies, elapsed, attempts
-        }, 200, origin);
-      } catch (e) {
-        return json({ ok: false, stage: "convert", channel, error: e.message }, 200, origin);
-      }
-    }
-
-    // ---------- /run 兼容 ----------
     if (path === "/run" || path === "/" || path === "") {
-      const channel = chooseChannel(url);
+      const channel = chooseChannel();
       const key = KEYS[channel - 1];
       try {
         const claimR = await doClaim(key);
         const claim = claimR.data;
         if (!claim || claim.code !== 1) {
-          return json({ ok: false, channel, stage: "claim", error: (claim && claim.msg) || "领取失败", elapsedClaim: claimR.elapsed }, 200, origin);
+          return json({ ok: false, channel, stage: "claim", error: (claim && claim.msg) || "领取失败" }, 200, origin);
         }
         const username = claim.username || "";
         const password = claim.password || "";
@@ -227,17 +156,14 @@ export default {
             ok: false, channel, stage: "convert",
             error: (conv && conv.msg) || "转换失败",
             username, password,
-            remaining: claim.remaining ?? null, quotaLimit: claim.quota_limit ?? null,
-            elapsedClaim: claimR.elapsed, elapsedConvert: convR.elapsed,
-            attempts: convR.attempts, httpCode: conv && conv.http_code,
-            upstream: conv && conv.data
+            remaining: claim.remaining ?? null
           }, 200, origin);
         }
+        
         const cookies = pickCookies(conv);
         return json({
           ok: true, channel, username, password, cookies,
-          remaining: claim.remaining ?? null, quotaLimit: claim.quota_limit ?? null,
-          elapsedClaim: claimR.elapsed, elapsedConvert: convR.elapsed, attempts: convR.attempts
+          remaining: claim.remaining ?? null
         }, 200, origin);
       } catch (e) {
         return json({ ok: false, channel, error: e.message }, 200, origin);
