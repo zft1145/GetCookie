@@ -39,6 +39,7 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background:
 .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--md-outline-variant); background: var(--md-surface-container-lowest); }
 .admin-item:last-child { border-bottom: none; }
 .copy-btn { border: none; background: transparent; color: var(--md-primary); cursor: pointer; font-weight: 500; font-size: 14px; padding: 6px 12px; border-radius: 100px; }
+.copy-btn:active { background: rgba(103,80,164,0.1); }
 .snackbar { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 100px); background: var(--md-surface-container-highest); color: var(--md-on-surface); padding: 12px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transition: all 0.3s; z-index: 100; }
 .snackbar.show { transform: translate(-50%, 0); opacity: 1; }
 </style>
@@ -168,9 +169,12 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background:
               <strong>${fp} ${vipBadge}</strong><br>
               <span style="font-size:12px;color:var(--md-on-surface-variant)">今日已用: ${u.count} / ${limit}</span>
             </div>
-            <button class="copy-btn" onclick="toggleUser('${fp}', '${u.status === 'active' ? 'banned' : 'active'}')" style="color:${u.status === 'active' ? 'var(--md-primary)' : 'var(--md-error)'}">
-              ${u.status === 'active' ? '封禁' : '解封'}
-            </button>
+            <div style="display:flex; gap:4px;">
+              <button class="copy-btn" onclick="resetUserQuota('${fp}')" style="color:var(--md-primary)">重置</button>
+              <button class="copy-btn" onclick="toggleUser('${fp}', '${u.status === 'active' ? 'banned' : 'active'}')" style="color:${u.status === 'active' ? 'var(--md-error)' : 'var(--md-success)'}">
+                ${u.status === 'active' ? '封禁' : '解封'}
+              </button>
+            </div>
           </div>
           `;
         }).join('');
@@ -191,6 +195,16 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background:
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'ban_user', fingerprint, status })
     });
+    loadData();
+  };
+
+  window.resetUserQuota = async (fingerprint) => {
+    if(!confirm('确定要重置该用户的今日额度吗？')) return;
+    await fetch(`https://cookiew.xtz1.top/admin/api?key=${ADMIN_KEY}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'reset_user_quota', fingerprint })
+    });
+    toast('额度已重置');
     loadData();
   };
 
