@@ -6,24 +6,20 @@
 <title>4399 账号与 Cookies</title>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
-/* ================= M3 Design Tokens ================= */
 :root {
   --md-primary: #6750A4; 
   --md-on-primary: #FFFFFF;
   --md-primary-container: #EADDFF; 
   --md-on-primary-container: #21005D;
-  
   --md-surface: #FEF7FF; 
   --md-surface-container-lowest: #FFFFFF;
   --md-surface-container-low: #F7F2FA;
   --md-surface-container: #F3EDF7; 
   --md-surface-container-high: #ECE6F0;
   --md-surface-container-highest: #E6E0E9;
-
   --md-on-surface: #1D1B20; 
   --md-on-surface-variant: #49454F;
   --md-outline-variant: #CAC4D0;
-  
   --md-error: #B3261E;
   --md-success: #386A20;
 }
@@ -33,18 +29,15 @@ html[data-theme="dark"] {
   --md-on-primary: #381E72;
   --md-primary-container: #4F378B; 
   --md-on-primary-container: #EADDFF;
-  
   --md-surface: #141218; 
   --md-surface-container-lowest: #0F0D13;
   --md-surface-container-low: #1D1B20;
   --md-surface-container: #211F26; 
   --md-surface-container-high: #2B2930;
   --md-surface-container-highest: #36343B;
-
   --md-on-surface: #E6E0E9; 
   --md-on-surface-variant: #CAC4D0;
   --md-outline-variant: #49454F;
-
   --md-error: #F2B8B5;
   --md-success: #B6F09C;
 }
@@ -57,7 +50,6 @@ body {
   padding-bottom: calc(100px + env(safe-area-inset-bottom)); 
 }
 
-/* App Bar */
 .app-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; height: 64px; padding: 0 16px; background-color: var(--md-surface); }
 .app-bar h1 { margin: 0; font-size: 20px; font-weight: 500; flex: 1; letter-spacing: 0; }
 .icon-button { width: 48px; height: 48px; border: none; border-radius: 50%; background: transparent; color: var(--md-on-surface-variant); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; margin-right: -12px; }
@@ -65,7 +57,6 @@ body {
 
 .container { max-width: 600px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 
-/* MD3 Cards */
 .card { 
   background-color: var(--md-surface-container-low); 
   border-radius: 24px; 
@@ -74,14 +65,12 @@ body {
 }
 .card-title { margin: 0 0 16px 0; font-size: 15px; font-weight: 500; color: var(--md-on-surface); }
 
-/* 顶部状态 */
 .status-layout { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 12px; }
 .status-item { text-align: center; flex: 1; }
 .status-value { color: var(--md-primary); font-size: 36px; font-weight: 600; line-height: 1.2; margin: 4px 0; font-variant-numeric: tabular-nums; }
 .status-divider { width: 1px; height: 40px; background-color: var(--md-outline-variant); opacity: 0.5; }
 .status-hint { text-align: center; color: var(--md-on-surface-variant); font-size: 13px; margin-bottom: 20px; }
 
-/* 按钮 */
 .filled-button { 
   display: flex; align-items: center; justify-content: center; 
   width: 100%; height: 52px; 
@@ -93,7 +82,6 @@ body {
 .filled-button:active { transform: scale(0.96); }
 .filled-button:disabled { background: var(--md-surface-container-highest); color: var(--md-on-surface-variant); opacity: 0.6; transform: none; }
 
-/* ★ Play 商店风格加载动画 */
 .spinner { width: 20px; height: 20px; display: none; margin-right: 10px; }
 .spinner.on { display: block; }
 .spinner svg { animation: rotate 2s linear infinite; width: 100%; height: 100%; }
@@ -109,10 +97,7 @@ body {
   100% { stroke-dasharray: 90, 200; stroke-dashoffset: -124px; }
 }
 
-/* 结果面板 */
 .result-list { display: flex; flex-direction: column; gap: 12px; }
-
-/* 账号密码同行 */
 .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .result-item { 
   display: flex; flex-direction: column; 
@@ -125,7 +110,6 @@ body {
 .result-text { font-family: ui-monospace, monospace; font-size: 14px; color: var(--md-on-surface); word-break: break-all; padding-right: 24px; }
 .text-primary { color: var(--md-primary); font-family: inherit; font-weight: 500; }
 
-/* 小复制图标 */
 .copy-icon-btn { 
   position: absolute; right: 8px; bottom: 8px; 
   padding: 6px; border: none; border-radius: 50%; 
@@ -136,7 +120,6 @@ body {
 .copy-icon-btn:active { background: var(--md-surface-container-high); }
 .copy-icon-btn svg { width: 16px; height: 16px; }
 
-/* Cookie 独立区块 */
 .cookie-block { 
   display: flex; flex-direction: column; 
   background: var(--md-surface-container-high); 
@@ -161,12 +144,10 @@ body {
   border-radius: 12px; 
 }
 
-/* 日志区 */
 .log-box { height: 100px; overflow-y: auto; background: var(--md-surface-container); border-radius: 16px; padding: 12px; font-family: ui-monospace, monospace; font-size: 12px; color: var(--md-on-surface-variant); display: flex; flex-direction: column; gap: 4px; }
 .log-ok { color: var(--md-success); }
 .log-err { color: var(--md-error); }
 
-/* 兑换区 */
 .redeem-box { display: flex; gap: 8px; }
 .redeem-box input { 
   flex: 1; padding: 0 14px; height: 48px; 
@@ -182,7 +163,6 @@ body {
 }
 .redeem-btn:disabled { opacity: 0.5; }
 
-/* ★ 悬浮窗：紧贴底部 */
 .floating-ad {
   position: fixed; 
   right: 0; 
@@ -201,7 +181,6 @@ body {
 .floating-ad strong { font-size: 13px; font-weight: 600; }
 .floating-ad span { color: #EADDFF; font-size: 11px; margin-top: 2px; }
 
-/* Modal & Snackbar */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
 .modal-overlay.show { opacity: 1; pointer-events: auto; }
 .modal-box { background: var(--md-surface-container-high); border-radius: 28px; padding: 24px; width: 90%; max-width: 320px; text-align: center; transform: scale(0.9); transition: transform 0.3s; }
@@ -318,7 +297,7 @@ body {
   const $ = id => document.getElementById(id);
   const snackbar = $('snackbar');
   
-  let snackTimer, busy = false, userFp = '';
+  let snackTimer, busy = false, userFp = '', isVipMode = false;
 
   function toast(msg) {
     snackbar.textContent = msg;
@@ -368,7 +347,6 @@ body {
     $('log').scrollTop = $('log').scrollHeight;
   }
 
-  // 静默拉取状态，不阻塞主线程
   async function loadInfo() {
     try {
       const res = await fetch(`${WORKER_URL}/info?fp=${userFp}`, { cache: 'no-store' });
@@ -377,17 +355,21 @@ body {
         $('totalUsers').textContent = data.totalUsers;
         
         if (data.is_vip) {
+          isVipMode = true;
           $('userQuota').textContent = '∞';
           $('userQuota').style.color = 'var(--md-primary)';
           $('userStatusText').textContent = `您今日已获取 ${data.used} 次 (无限额度)`;
           $('redeemCard').style.display = 'none';
           $('floatingAd').style.display = 'none';
         } else {
+          isVipMode = false;
           $('userQuota').textContent = data.remaining;
           $('userStatusText').textContent = `您今日已获取 ${data.used} 次`;
           if (data.remaining === 0) {
             $('userQuota').style.color = 'var(--md-error)';
             $('getBtn').disabled = true; $('btnText').textContent = '额度已用完';
+          } else {
+             $('userQuota').style.color = 'var(--md-primary)';
           }
         }
 
@@ -508,15 +490,20 @@ body {
       $('outPass').textContent = data.password;
       $('outCookie').textContent = data.cookies || '解析失败';
       
-      $('userQuota').textContent = data.remaining;
-      if (data.remaining === 0) {
-        $('userQuota').style.color = 'var(--md-error)'; $('btnText').textContent = '额度已用完';
+      if (isVipMode) {
+        $('userQuota').textContent = '∞';
+        log(`获取成功！(无限额度)`, 'ok');
       } else {
-        $('getBtn').disabled = false; $('btnText').textContent = '获取';
+        $('userQuota').textContent = data.remaining;
+        if (data.remaining === 0) {
+          $('userQuota').style.color = 'var(--md-error)'; $('btnText').textContent = '额度已用完';
+        } else {
+          $('getBtn').disabled = false; $('btnText').textContent = '获取';
+        }
+        log(`获取成功！剩余 ${data.remaining} 次`, 'ok');
       }
       
       loadInfo(); 
-      log(`获取成功！剩余 ${data.remaining} 次`, 'ok');
       toast('获取成功');
     } catch (e) {
       log(`网络异常: ${e.message}`, 'err');
@@ -528,7 +515,6 @@ body {
     }
   }
 
-  // ★ 核心修复：初始化不等待网络，直接开放按钮点击
   (async function init() {
     try {
       userFp = await generateFingerprint();
@@ -536,16 +522,13 @@ body {
       userFp = 'FP_FALLBACK_' + Date.now();
     }
     
-    // 立即解除按钮禁用状态，哪怕网还没通
     $('getBtn').disabled = false;
     $('btnText').textContent = '获取';
     $('userStatusText').textContent = '就绪，点击获取';
     $('userQuota').textContent = '?';
     
-    // 绑定点击事件
     $('getBtn').addEventListener('click', () => doFetch());
     
-    // 后台静默拉取一次数据
     loadInfo().catch(()=>{});
   })();
 
@@ -562,4 +545,4 @@ body {
 })();
 </script>
 </body>
-            </html>
+</html>
