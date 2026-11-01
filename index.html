@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>4399 通道 · 账号与 Cookies</title>
+<title>4399 账号与 Cookies</title>
 <style>
 :root{
   --md-primary:#6750A4; --md-on-primary:#fff;
@@ -51,21 +51,12 @@ body{
 .card{background:var(--md-surface-container-low);border-radius:16px;padding:20px;margin-bottom:16px}
 .card-title{margin:0 0 12px;font-size:15px;font-weight:500}
 .label{font-size:12px;letter-spacing:.4px;color:var(--md-on-surface-variant);margin-bottom:6px}
-.quota-value{font-size:19px;font-weight:500;font-variant-numeric:tabular-nums}
 
-.channels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
-.channel{
-  display:flex;flex-direction:column;align-items:flex-start;gap:4px;
-  padding:14px 12px;border:none;border-radius:16px;cursor:pointer;
-  background:var(--md-surface-container);color:var(--md-on-surface);
-  font-family:inherit;text-align:left;transition:background .2s,box-shadow .2s;
-}
-.channel:hover{box-shadow:var(--md-elev1)}
-.channel .ch-num{font-size:13px;font-weight:500}
-.channel .ch-status{font-size:11.5px;color:var(--md-on-surface-variant);word-break:break-all;line-height:1.4}
-.channel[data-state="running"]{background:var(--md-secondary-container);color:var(--md-on-secondary-container)}
-.channel[data-state="ok"]{background:var(--md-secondary-container);color:var(--md-on-secondary-container)}
-.channel[data-state="error"]{box-shadow:inset 0 0 0 1px var(--md-error)}
+/* 额度面板 */
+.quota-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.quota-card { background: var(--md-surface-container); padding: 12px; border-radius: 12px; text-align: center; }
+.quota-card .k { font-size: 12px; color: var(--md-on-surface-variant); margin-bottom: 4px; }
+.quota-card .v { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; }
 
 .filled-button{
   position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:10px;
@@ -82,18 +73,6 @@ body{
 }
 .spinner.on{display:block}
 @keyframes spin{to{transform:rotate(360deg)}}
-
-.progress{
-  display:flex;align-items:center;gap:8px;margin-top:12px;
-  font-size:12.5px;color:var(--md-on-surface-variant);
-}
-.progress-dot{
-  width:8px;height:8px;border-radius:50%;background:var(--md-outline-variant);flex:0 0 8px;
-}
-.progress-dot.active{background:var(--md-primary);animation:pulse 1.2s ease-in-out infinite}
-.progress-dot.done{background:var(--md-success)}
-.progress-dot.error{background:var(--md-error)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 
 .result-row{
   display:flex;align-items:center;gap:8px;padding:12px 6px 12px 16px;
@@ -112,7 +91,7 @@ body{
   background:var(--md-surface-container-high);
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   font-size:12.5px;line-height:1.65;white-space:pre-wrap;word-break:break-all;
-  max-height:250px;overflow:auto;color:var(--md-on-surface);
+  max-height:200px;overflow:auto;color:var(--md-on-surface);
 }
 .copy-btn{
   flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;
@@ -122,7 +101,7 @@ body{
 }
 .copy-btn:hover{background:rgba(103,80,164,.08)}
 .log{
-  height:180px;overflow:auto;padding:12px;border-radius:12px;
+  height:150px;overflow:auto;padding:12px;border-radius:12px;
   background:var(--md-surface-container-high);
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
   font-size:12px;line-height:1.7;color:var(--md-on-surface-variant);
@@ -130,7 +109,6 @@ body{
 .log-line{white-space:pre-wrap;word-break:break-all}
 .log-ok{color:var(--md-success)}
 .log-err{color:var(--md-error)}
-.log-dim{opacity:.7}
 .snackbar{
   position:fixed;left:50%;bottom:24px;z-index:100;transform:translate(-50%,140%);
   max-width:calc(100% - 32px);padding:14px 20px;border-radius:8px;
@@ -144,7 +122,7 @@ body{
 <body>
 
 <header class="app-bar">
-  <h1>4399 通道 · 账号与 Cookies</h1>
+  <h1>4399 账号与 Cookies</h1>
   <div class="spacer"></div>
   <button class="icon-button" id="themeBtn" aria-label="切换主题">
     <svg id="iconSun" width="22" height="22" viewBox="0 0 24 24" fill="none"
@@ -167,41 +145,30 @@ body{
         <div class="label">密钥托管</div>
         <div style="font-size:14px">后端 Worker 持有，前端不可见</div>
       </div>
-      <div style="text-align:right">
-        <div class="label">账号剩余额度</div>
-        <div class="quota-value" id="quota">—</div>
-      </div>
     </div>
 
-    <div class="channels" id="channels">
-      <button class="channel" data-ch="1" data-state="idle">
-        <span class="ch-num">通道 1</span>
-        <span class="ch-status" id="st1">待命</span>
-      </button>
-      <button class="channel" data-ch="2" data-state="idle">
-        <span class="ch-num">通道 2</span>
-        <span class="ch-status" id="st2">待命</span>
-      </button>
-      <button class="channel" data-ch="3" data-state="idle">
-        <span class="ch-num">通道 3</span>
-        <span class="ch-status" id="st3">待命</span>
-      </button>
+    <!-- 额度展示区 -->
+    <div class="quota-grid" id="quotaGrid">
+      <div class="quota-card"><div class="k">通道 1</div><div class="v" id="q1">未知</div></div>
+      <div class="quota-card"><div class="k">通道 2</div><div class="v" id="q2">未知</div></div>
+      <div class="quota-card"><div class="k">通道 3</div><div class="v" id="q3">未知</div></div>
     </div>
 
-    <button class="filled-button" id="autoBtn">
+    <button class="filled-button" id="getBtn">
       <span class="spinner" id="spinner"></span>
-      <span id="autoText">自动轮询（1 → 2 → 3）</span>
+      <span id="btnText">获取</span>
     </button>
-
-    <div class="progress" id="progressWrap" style="display:none">
-      <span class="progress-dot" id="dot1"></span><span id="step1">领取账号</span>
-      <span style="flex:1"></span>
-      <span class="progress-dot" id="dot2"></span><span id="step2">转 Cookies</span>
-    </div>
   </section>
 
   <section class="card">
     <h2 class="card-title">提取结果</h2>
+
+    <div class="result-row">
+      <div class="info">
+        <div class="k">来源通道</div>
+        <div class="v" id="outChannel" style="color:var(--md-primary)">—</div>
+      </div>
+    </div>
 
     <div class="result-row">
       <div class="info">
@@ -221,7 +188,7 @@ body{
 
     <div class="result-block">
       <div class="result-block-head">
-        <div class="k label" style="margin:0">Cookies (sauth_json)</div>
+        <div class="k label" style="margin:0">Cookie获取</div>
         <button class="copy-btn" data-copy="outCookie">复制</button>
       </div>
       <pre class="cookie-box" id="outCookie">—</pre>
@@ -241,25 +208,39 @@ body{
 (function () {
   'use strict';
 
-  // ====== 配置 ======
-  const WORKER_URL = "https://cookiew.xtz1.top"; // 确保这里是你绑定的 Worker 域名
-  const CLAIM_TIMEOUT = 20000;
-  const CONVERT_TIMEOUT = 30000;
+  const WORKER_URL = "https://cookiew.xtz1.top";
+  const TIMEOUT = 30000;
 
-  // ====== DOM ======
   const $ = id => document.getElementById(id);
-  const autoBtn = $('autoBtn');
-  const autoText = $('autoText');
+  const getBtn = $('getBtn');
+  const btnText = $('btnText');
   const spinner = $('spinner');
-  const quotaEl = $('quota');
   const logEl = $('log');
   const snackbar = $('snackbar');
-  const progressWrap = $('progressWrap');
 
-  let nextChannel = 1;
   let busy = false;
 
-  // ====== 工具 ======
+  // 读取并初始化额度
+  function initQuota() {
+    for (let i = 1; i <= 3; i++) {
+      const val = localStorage.getItem('quota_ch' + i);
+      if (val !== null) {
+        $('q' + i).textContent = val;
+      }
+    }
+  }
+
+  // 更新并保存额度
+  function updateQuota(channel, remaining) {
+    if (remaining !== null && remaining !== undefined) {
+      const el = $('q' + channel);
+      if (el) {
+        el.textContent = remaining;
+        localStorage.setItem('quota_ch' + channel, remaining);
+      }
+    }
+  }
+
   function setText(id, t) { const el = $(id); if (el) el.textContent = t; }
 
   function log(msg, type) {
@@ -268,7 +249,7 @@ body{
     const t = new Date().toLocaleTimeString('zh-CN', { hour12: false });
     line.textContent = '[' + t + '] ' + msg;
     logEl.appendChild(line);
-    while (logEl.children.length > 100) logEl.removeChild(logEl.firstChild);
+    while (logEl.children.length > 50) logEl.removeChild(logEl.firstChild);
     logEl.scrollTop = logEl.scrollHeight;
   }
 
@@ -280,45 +261,19 @@ body{
     snackTimer = setTimeout(() => snackbar.classList.remove('show'), 2200);
   }
 
-  function setChannelState(ch, state, text) {
-    const card = document.querySelector(`.channel[data-ch="${ch}"]`);
-    if (!card) return;
-    card.dataset.state = state;
-    const st = $('st' + ch);
-    if (st && text != null) st.textContent = text;
-  }
-
   function setBusy(on) {
     busy = on;
-    autoBtn.disabled = on;
+    getBtn.disabled = on;
     spinner.classList.toggle('on', on);
-    autoText.textContent = on ? '处理中…' : '自动轮询（1 → 2 → 3）';
+    btnText.textContent = on ? '获取中…' : '获取';
   }
 
-  function resetProgress() {
-    ['dot1', 'dot2'].forEach(id => $(id).className = 'progress-dot');
-    $('step1').textContent = '领取账号';
-    $('step2').textContent = '转 Cookies';
-    progressWrap.style.display = 'flex';
-  }
-
-  function markStep(n, state, text) {
-    const dot = $('dot' + n);
-    dot.className = 'progress-dot ' + state;
-    if (text) $('step' + n).textContent = text;
-  }
-
-  // ====== 复制 ======
+  // 复制功能
   function fallbackCopy(text) {
     const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.setAttribute('readonly', '');
-    ta.style.position = 'fixed';
-    ta.style.top = '-9999px';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    ta.setSelectionRange(0, ta.value.length);
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '-9999px'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
     try { document.execCommand('copy'); } catch (e) {}
     document.body.removeChild(ta);
   }
@@ -339,7 +294,7 @@ body{
     copyText(text).then(() => toast('已复制到剪贴板'));
   });
 
-  // ====== 带超时的 fetch ======
+  // 请求
   function fetchJson(url, ms) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), ms);
@@ -360,113 +315,59 @@ body{
       .finally(() => clearTimeout(timer));
   }
 
-  // ====== 主流程 ======
-  async function run(channel) {
-    if (busy) { toast('正在处理中'); return; }
+  // 主流程
+  async function run() {
+    if (busy) return;
     if (!WORKER_URL) { toast('请先填写 WORKER_URL'); return; }
 
     setBusy(true);
-    resetProgress();
-    markStep(1, 'active', '领取账号中…');
-    markStep(2, '', '等待领取');
-    setChannelState(channel, 'running', '领取中…');
+    setText('outChannel', '—');
     setText('outUser', '—');
     setText('outPass', '—');
     setText('outCookie', '—');
 
-    log(`通道 ${channel} 开始领取账号…`);
+    log('开始获取…');
 
-    // ---- 第一步：领取账号 ----
-    let claim;
     try {
-      const { data, elapsed } = await fetchJson(
-        WORKER_URL.replace(/\/+$/, '') + '/claim?channel=' + channel,
-        CLAIM_TIMEOUT
-      );
-      claim = data;
+      const { data, elapsed } = await fetchJson(WORKER_URL.replace(/\/+$/, '') + '/run', TIMEOUT);
+
+      // 不管成功与否，先尝试更新额度
+      if (data.channel && data.remaining != null) {
+        updateQuota(data.channel, data.remaining);
+      }
+
       if (!data.ok) {
-        markStep(1, 'error', `领取失败：${data.error || '未知'}`);
-        setChannelState(channel, 'error', data.error || '领取失败');
-        log(`通道 ${channel} 领取失败（${elapsed}ms）：${data.error || '未知'}`, 'err');
-        toast('领取失败');
+        log(`获取失败（${elapsed}ms）：${data.error || '未知错误'}`, 'err');
+        toast(data.error || '获取失败');
         return;
       }
-      markStep(1, 'done', `领取成功 ${elapsed}ms`);
-      setChannelState(channel, 'running', '已领取，转换中…');
+
+      setText('outChannel', `通道 ${data.channel}`);
       setText('outUser', data.username || '—');
       setText('outPass', data.password || '—');
-      if (data.remaining != null) quotaEl.textContent = String(data.remaining);
-      log(`通道 ${channel} 领取成功（${elapsed}ms）：${data.username}，剩余 ${data.remaining}`, 'ok');
-    } catch (e) {
-      markStep(1, 'error', '网络错误');
-      setChannelState(channel, 'error', '网络错误');
-      log(`通道 ${channel} 领取网络错误：${e.message}`, 'err');
-      toast('领取请求失败');
-      return;
-    }
-
-    // ---- 第二步：转换 Cookies ----
-    markStep(2, 'active', '转换中…');
-    log(`通道 ${channel} 开始转换 Cookies…`);
-
-    try {
-      const qs = new URLSearchParams({
-        channel: String(channel),
-        username: claim.username,
-        password: claim.password
-      });
-      const { data, elapsed } = await fetchJson(
-        WORKER_URL.replace(/\/+$/, '') + '/convert?' + qs.toString(),
-        CONVERT_TIMEOUT
-      );
-
-      if (!data.ok) {
-        markStep(2, 'error', `转换失败：${data.error || '未知'}`);
-        setChannelState(channel, 'error', data.error || '转换失败');
-        log(`通道 ${channel} 转换失败（${elapsed}ms，尝试 ${data.attempts || 1} 次）：${data.error || '未知'}`, 'err');
-        if (data.upstream) log('上游原始错误：' + data.upstream.slice(0, 100), 'dim');
-        toast('转换失败，账号已保留');
-        return;
-      }
-
-      markStep(2, 'done', `完成 ${elapsed}ms`);
-      setChannelState(channel, 'ok', `成功 ${elapsed}ms`);
       
-      // 如果返回的 cookies 是空字符串，说明解析失败
       if (!data.cookies) {
-        log(`通道 ${channel} 转换成功，但 Cookies 为空`, 'err');
-        setText('outCookie', '解析失败，请查看日志或原始数据');
-        toast('未解析到 Cookies');
+        setText('outCookie', '解析失败');
+        log(`通道 ${data.channel} 获取成功，但无 Cookie`, 'err');
+        toast('获取成功，但 Cookie 为空');
         return;
       }
 
       setText('outCookie', data.cookies);
-      log(`通道 ${channel} 转换成功（${elapsed}ms，尝试 ${data.attempts || 1} 次，长度 ${data.cookies.length}）`, 'ok');
-      toast('提取完成');
+      log(`通道 ${data.channel} 获取成功（${elapsed}ms）`, 'ok');
+      toast('获取完成');
+
     } catch (e) {
-      markStep(2, 'error', '网络错误');
-      setChannelState(channel, 'error', '网络错误');
-      log(`通道 ${channel} 转换网络错误：${e.message}`, 'err');
-      toast('转换请求失败，账号已保留');
+      log(`获取失败：${e.message}`, 'err');
+      toast('请求失败，请重试');
     } finally {
       setBusy(false);
     }
   }
 
-  // ====== 事件 ======
-  autoBtn.addEventListener('click', () => {
-    const ch = nextChannel;
-    nextChannel = nextChannel % 3 + 1;
-    run(ch);
-  });
+  getBtn.addEventListener('click', run);
 
-  $('channels').addEventListener('click', e => {
-    const card = e.target.closest('.channel');
-    if (!card) return;
-    run(parseInt(card.dataset.ch, 10));
-  });
-
-  // ====== 主题 ======
+  // 主题切换
   const mq = window.matchMedia('(prefers-color-scheme: dark)');
   function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
@@ -479,7 +380,9 @@ body{
     applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
   });
 
-  log('就绪。密钥由后端托管，前端仅显示通道。');
+  // 初始化
+  initQuota();
+  log('就绪，点击获取开始。');
 })();
 </script>
 </body>
