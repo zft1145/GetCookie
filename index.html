@@ -98,11 +98,14 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; 
 .redeem-btn { height: 48px; padding: 0 20px; border-radius: 12px; border: none; background: var(--md-primary); color: var(--md-on-primary); font-weight: 500; font-size: 14px; cursor: pointer; }
 
 .history-search { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container); color: var(--md-on-surface); margin-bottom: 12px; font-size: 13px; }
-.history-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
-.history-item { background: var(--md-surface-container); padding: 12px; border-radius: 12px; font-size: 12px; position: relative; }
-.history-time { color: var(--md-on-surface-variant); font-size: 11px; margin-bottom: 4px; display: flex; justify-content: space-between; }
-.history-data { font-family: ui-monospace, monospace; word-break: break-all; color: var(--md-on-surface); margin-bottom: 4px; }
-.history-btn { background: var(--md-primary); color: var(--md-on-primary); border: none; padding: 4px 10px; border-radius: 100px; font-size: 11px; cursor: pointer; margin-top: 4px; float: right; }
+.history-list { display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; }
+.history-item { background: var(--md-surface-container); padding: 16px; border-radius: 16px; font-size: 13px; position: relative; }
+.history-time { color: var(--md-on-surface-variant); font-size: 11px; margin-bottom: 8px; }
+.history-data-row { margin-bottom: 6px; font-family: ui-monospace, monospace; word-break: break-all; }
+.history-data-row span { color: var(--md-on-surface-variant); font-family: 'Roboto', sans-serif; }
+.history-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+.hist-btn { background: var(--md-surface-container-highest); color: var(--md-on-surface); border: none; padding: 6px 14px; border-radius: 100px; font-size: 12px; cursor: pointer; }
+.hist-btn.primary { background: var(--md-primary); color: var(--md-on-primary); }
 
 .watermark {
   position: fixed; top: 12px; right: 60px; z-index: 10;
@@ -174,7 +177,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   <section class="card">
     <h2 class="card-title">提取结果</h2>
     <div class="result-list">
-      <div class="result-item channel-row">
+      <div class="result-item channel-row" id="channelRow">
         <div class="channel-info" id="outChannel">来源通道 —</div>
         <div class="vote-group" id="voteGroup" style="display:none;">
           <button class="vote-btn" onclick="vote('up')" title="推荐">
@@ -243,7 +246,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
 
 <div class="modal-overlay" id="turnstileModal">
   <div class="modal-box">
-    <h2 class="modal-title">安全验证</h2>
+    <h2 class="modal-title" style="text-align:center;">安全验证</h2>
     <p style="color:var(--md-on-surface-variant);font-size:13px;margin:0 0 16px 0;text-align:center;">检测到操作频繁，请完成验证。</p>
     <div id="turnstile-container" style="display:flex;justify-content:center;margin:16px 0;"></div>
     <button class="text-button" id="closeModalBtn" style="color:var(--md-on-surface-variant);width:100%;text-align:center;">取消</button>
@@ -334,38 +337,33 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
       $('historyList').innerHTML = '<div style="font-size:12px;color:var(--md-on-surface-variant);text-align:center;padding:12px;">暂无匹配记录</div>';
       return;
     }
+    
     $('historyList').innerHTML = history.map((h, i) => `
       <div class="history-item">
-        <div class="history-time"><span>${h.time} | 通道 ${h.channel}</span></div>
-        <div class="history-data">账号: ${h.username}</div>
-        <div class="history-data" style="color:var(--md-on-surface-variant);">Cookie: ${h.cookies ? h.cookies.substring(0, 20) + '...' : '空'}</div>
-        <button class="history-btn" onclick="convertHistory('${h.username}', '${h.password}', '${h.channelKey}')">转为 Cookie</button>
-        <div style="clear:both;"></div>
+        <div class="history-time">${h.time} | 来自通道 ${h.channel}</div>
+        <div class="history-data-row"><span>账号:</span> ${h.username}</div>
+        <div class="history-data-row"><span>密码:</span> ${h.password}</div>
+        <div class="history-data-row" style="max-height: 60px; overflow-y: auto;"><span>Cookie:</span> ${h.cookies || '暂无'}</div>
+        <div class="history-actions">
+          <button class="hist-btn" onclick="copyText('${h.username}')">复制账号</button>
+          <button class="hist-btn primary" onclick="applyHistory(${i})">应用到面板</button>
+        </div>
       </div>
     `).join('');
   }
 
-  window.convertHistory = async (username, password, channelKey) => {
-    toast('正在转换...');
-    try {
-      const convUrl = `${WORKER_URL}/convert?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&key=${channelKey || 'default'}`;
-      const convRes = await fetch(convUrl, { cache: 'no-store' });
-      const convData = await convRes.json();
-      
-      if (convData.ok && convData.cookies) {
-        $('outChannel').textContent = '来源通道 历史记录';
-        $('outUser').textContent = username;
-        $('outPass').textContent = password;
-        $('outCookie').textContent = convData.cookies;
-        $('voteGroup').style.display = 'none';
-        toast('转换成功');
-        addHistory(username, password, convData.cookies, '历史', channelKey);
-      } else {
-        toast(convData.error || '转换失败');
-      }
-    } catch(e) {
-      toast('网络请求失败');
-    }
+  window.applyHistory = (index) => {
+    let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
+    const h = history[index];
+    if(!h) return;
+
+    $('channelRow').style.display = 'flex';
+    $('outChannel').textContent = `历史通道 ${h.channel}`;
+    $('outUser').textContent = h.username;
+    $('outPass').textContent = h.password;
+    $('outCookie').textContent = h.cookies || '—';
+    $('voteGroup').style.display = 'none';
+    toast('已应用历史记录');
   };
 
   $('historySearch').addEventListener('input', (e) => renderHistory(e.target.value));
@@ -566,7 +564,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
       const convData = await convRes.json();
 
       if (!convData.ok) {
-        throw new Error('Cookie 转换失败，请使用历史记录重试');
+        throw new Error('Cookie 转换失败，请稍后再试');
       }
 
       const cookies = convData.cookies;
