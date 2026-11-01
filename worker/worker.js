@@ -70,7 +70,7 @@ function pickCookies(obj) {
     if (typeof v === "string" && v.trim()) return v;
   }
 
-  // 2. 针对 4399 的 data.sauth_json 结构，直接转成单行 key=value; 格式
+  // 2. 针对 4399 的 data.sauth_json 结构，直接输出单行带大括号的 JSON
   if (obj.data) {
     let dataObj = obj.data;
     if (typeof dataObj === "string") {
@@ -79,31 +79,18 @@ function pickCookies(obj) {
     
     if (dataObj && typeof dataObj === "object" && dataObj.sauth_json) {
       try {
+        // 解析出内层对象
         const sauthObj = JSON.parse(dataObj.sauth_json);
-        // 转成 a=b; c=d 的单行格式
-        return Object.keys(sauthObj).map(k => {
-          let v = sauthObj[k];
-          // 如果值是对象，转成紧凑的 JSON 字符串
-          if (v && typeof v === "object") v = JSON.stringify(v);
-          return `${k}=${v}`;
-        }).join('; ');
+        // 直接 Stringify，不加 null, 2，这样就是紧凑的单行 JSON，带 {}
+        return JSON.stringify(sauthObj);
       } catch (e) {
         return dataObj.sauth_json;
       }
     }
-    return typeof dataObj === "object" ? JSON.stringify(dataObj) : dataObj;
   }
 
-  // 3. 兜底：压成单行 JSON
+  // 3. 兜底：直接把整个对象转成单行 JSON
   return JSON.stringify(obj);
-}
-
-function chooseChannel(url) {
-  let channel = parseInt(url.searchParams.get("channel") || "0", 10);
-  if (!(channel >= 1 && channel <= KEYS.length)) {
-    channel = Math.floor(Math.random() * KEYS.length) + 1;
-  }
-  return channel;
 }
 
 async function doClaim(key) {
