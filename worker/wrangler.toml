@@ -1,3 +1,11 @@
+# 你的 Worker 名称
 name = "cookiew"
-main = "worker.js"
-compatibility_date = "2026-11-01"
+# 你的 Worker 入口文件
+main = "src/index.js" 
+# 兼容日期
+compatibility_date = "2024-01-01"
+
+# --- KV 命名空间绑定 ---
+[[kv_namespaces]]
+binding = "4399kv"  # 绑定名，必须和代码里 env['4399kv'] 保持一致
+id = "57ca2c79cdd44cc0a230c6f8bd8fa404"  # 你的 KV 命名空间 ID
