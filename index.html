@@ -164,18 +164,11 @@ body {
 .redeem-btn:disabled { opacity: 0.5; }
 
 .floating-ad {
-  position: fixed; 
-  right: 0; 
-  bottom: 0; 
-  margin-bottom: env(safe-area-inset-bottom); 
-  z-index: 100;
+  position: fixed; right: 0; bottom: 0; margin-bottom: env(safe-area-inset-bottom); z-index: 100;
   background: linear-gradient(135deg, #6750A4, #8E7CC3);
-  color: #FFF; text-decoration: none;
-  padding: 12px 16px;
-  border-radius: 16px 0 0 0; 
-  box-shadow: -2px 0px 12px rgba(103, 80, 164, 0.3);
-  display: flex; flex-direction: column; align-items: flex-start;
-  transition: transform 0.2s;
+  color: #FFF; text-decoration: none; padding: 12px 16px;
+  border-radius: 16px 0 0 0; box-shadow: -2px 0px 12px rgba(103, 80, 164, 0.3);
+  display: flex; flex-direction: column; align-items: flex-start; transition: transform 0.2s;
 }
 .floating-ad:active { transform: scale(0.95); }
 .floating-ad strong { font-size: 13px; font-weight: 600; }
@@ -218,7 +211,7 @@ body {
       <div class="spinner" id="spinner">
         <svg viewBox="25 25 50 50"><circle cx="50" cy="50" r="20"></circle></svg>
       </div>
-      <span id="btnText">获取</span>
+      <span id="btnText">加载中…</span>
     </button>
   </section>
 
@@ -361,6 +354,9 @@ body {
           $('userStatusText').textContent = `您今日已获取 ${data.used} 次 (无限额度)`;
           $('redeemCard').style.display = 'none';
           $('floatingAd').style.display = 'none';
+          
+          $('getBtn').disabled = false;
+          $('btnText').textContent = '获取';
         } else {
           isVipMode = false;
           $('userQuota').textContent = data.remaining;
@@ -369,7 +365,8 @@ body {
             $('userQuota').style.color = 'var(--md-error)';
             $('getBtn').disabled = true; $('btnText').textContent = '额度已用完';
           } else {
-             $('userQuota').style.color = 'var(--md-primary)';
+            $('userQuota').style.color = 'var(--md-primary)';
+            $('getBtn').disabled = false; $('btnText').textContent = '获取';
           }
         }
 
@@ -382,6 +379,11 @@ body {
       }
     } catch (e) {
       console.warn("状态加载失败", e);
+      if ($('btnText').textContent === '加载中…') {
+        $('getBtn').disabled = false; $('btnText').textContent = '获取';
+        $('userQuota').textContent = '?';
+        $('userStatusText').textContent = '状态获取失败，可尝试直接获取';
+      }
     }
   }
 
@@ -497,8 +499,6 @@ body {
         $('userQuota').textContent = data.remaining;
         if (data.remaining === 0) {
           $('userQuota').style.color = 'var(--md-error)'; $('btnText').textContent = '额度已用完';
-        } else {
-          $('getBtn').disabled = false; $('btnText').textContent = '获取';
         }
         log(`获取成功！剩余 ${data.remaining} 次`, 'ok');
       }
@@ -508,10 +508,13 @@ body {
     } catch (e) {
       log(`网络异常: ${e.message}`, 'err');
       toast('网络异常');
-      $('getBtn').disabled = false; $('btnText').textContent = '获取';
     } finally {
       busy = false;
       $('spinner').classList.remove('on');
+      if ($('btnText').textContent === '获取中…') {
+        $('getBtn').disabled = false;
+        $('btnText').textContent = '获取';
+      }
     }
   }
 
@@ -529,7 +532,7 @@ body {
     
     $('getBtn').addEventListener('click', () => doFetch());
     
-    loadInfo().catch(()=>{});
+    await loadInfo(); 
   })();
 
   const mq = window.matchMedia('(prefers-color-scheme: dark)');
