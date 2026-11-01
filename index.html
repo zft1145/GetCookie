@@ -98,12 +98,14 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; 
 .redeem-btn { height: 48px; padding: 0 20px; border-radius: 12px; border: none; background: var(--md-primary); color: var(--md-on-primary); font-weight: 500; font-size: 14px; cursor: pointer; }
 
 .history-search { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container); color: var(--md-on-surface); margin-bottom: 12px; font-size: 13px; }
-.history-list { display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; }
-.history-item { background: var(--md-surface-container); padding: 16px; border-radius: 16px; font-size: 13px; position: relative; }
-.history-time { color: var(--md-on-surface-variant); font-size: 11px; margin-bottom: 8px; }
-.history-data-row { margin-bottom: 6px; font-family: ui-monospace, monospace; word-break: break-all; }
+.history-list { display: flex; flex-direction: column; gap: 16px; max-height: 400px; overflow-y: auto; }
+.history-item { background: var(--md-surface-container); padding: 16px; border-radius: 16px; font-size: 13px; position: relative; display: flex; flex-direction: column; gap: 10px; }
+.history-time { color: var(--md-on-surface-variant); font-size: 11px; }
+.history-data-row { font-family: ui-monospace, monospace; word-break: break-all; }
 .history-data-row span { color: var(--md-on-surface-variant); font-family: 'Roboto', sans-serif; }
-.history-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+.history-cookie-box { background: var(--md-surface-container-high); border-radius: 12px; padding: 12px; position: relative; }
+.history-cookie-content { font-family: ui-monospace, monospace; font-size: 12px; color: var(--md-on-surface-variant); word-break: break-all; max-height: 80px; overflow-y: auto; background: var(--md-surface-container-lowest); padding: 8px; border-radius: 8px; margin-top: 6px; }
+.history-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .hist-btn { background: var(--md-surface-container-highest); color: var(--md-on-surface); border: none; padding: 6px 14px; border-radius: 100px; font-size: 12px; cursor: pointer; }
 .hist-btn.primary { background: var(--md-primary); color: var(--md-on-primary); }
 
@@ -343,27 +345,58 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
         <div class="history-time">${h.time} | 来自通道 ${h.channel}</div>
         <div class="history-data-row"><span>账号:</span> ${h.username}</div>
         <div class="history-data-row"><span>密码:</span> ${h.password}</div>
-        <div class="history-data-row" style="max-height: 60px; overflow-y: auto;"><span>Cookie:</span> ${h.cookies || '暂无'}</div>
+        
+        <div class="history-cookie-box">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:var(--md-on-surface-variant); font-size:12px;">Cookie</span>
+            <button class="text-button" onclick="copyText('${h.cookies}')">复制</button>
+          </div>
+          <div class="history-cookie-content">${h.cookies || '暂无'}</div>
+        </div>
+
         <div class="history-actions">
-          <button class="hist-btn" onclick="copyText('${h.username}')">复制账号</button>
-          <button class="hist-btn primary" onclick="applyHistory(${i})">应用到面板</button>
+          <button class="hist-btn primary" onclick="convertHistory(${i})">转为曲奇</button>
         </div>
       </div>
     `).join('');
   }
 
-  window.applyHistory = (index) => {
+  window.convertHistory = async (index) => {
     let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
     const h = history[index];
     if(!h) return;
 
-    $('channelRow').style.display = 'flex';
-    $('outChannel').textContent = `历史通道 ${h.channel}`;
-    $('outUser').textContent = h.username;
-    $('outPass').textContent = h.password;
-    $('outCookie').textContent = h.cookies || '—';
-    $('voteGroup').style.display = 'none';
-    toast('已应用历史记录');
+    toast('正在转换...');
+    try {
+      const convUrl = `${WORKER_URL}/convert?fp=${userFp}&username=${encodeURIComponent(h.username)}&password=${encodeURIComponent(h.password)}&key=${h.channelKey || 'default'}`;
+      const convRes = await fetch(convUrl, { cache: 'no-store' });
+      const convData = await convRes.json();
+      
+      if (convData.ok && convData.cookies) {
+        $('channelRow').style.display = 'flex';
+        $('outChannel').textContent = `历史通道 ${h.channel}`;
+        $('outUser').textContent = h.username;
+        $('outPass').textContent = h.password;
+        $('outCookie').textContent = convData.cookies;
+        $('voteGroup').style.display = 'none';
+        
+        // 更新历史记录
+        history[index].cookies = convData.cookies;
+        localStorage.setItem('cookies_history', JSON.stringify(history));
+        renderHistory($('historySearch').value);
+        
+        toast('转换成功，已显示到面板');
+        log(`历史记录转换成功`, 'ok');
+      } else {
+        if(convData.need_turnstile) {
+           toast('转换触发风控，请点击获取并验证');
+        } else {
+           toast(convData.error || '转换失败');
+        }
+      }
+    } catch(e) {
+      toast('网络请求失败');
+    }
   };
 
   $('historySearch').addEventListener('input', (e) => renderHistory(e.target.value));
@@ -389,7 +422,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
           isVipMode = false;
           $('userQuota').textContent = data.remaining;
           $('userStatusText').textContent = `您今日已获取 ${data.used} 次`;
-          if (data.remaining === 0) {
+          if (data.remaining <= 0) {
             $('userQuota').style.color = 'var(--md-error)';
             $('getBtn').disabled = true; $('btnText').textContent = '额度已用完';
           } else {
@@ -502,7 +535,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
     setTimeout(() => { $('progressWrap').classList.remove('show'); }, 300);
   }
 
-  async function doFetch(token = '') {
+  async function doFetch(initialToken = '') {
     if (busy) return;
     busy = true;
     $('getBtn').disabled = true;
@@ -518,23 +551,25 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
     startProgress();
 
     try {
-      const ignoreVotes = $('ignoreVotesSetting').checked;
-      const claimUrl = `${WORKER_URL}/claim?fp=${userFp}&ignore_votes=${ignoreVotes}` + (token ? `&turnstile_token=${token}` : '');
-      const claimRes = await fetch(claimUrl, { cache: 'no-store' });
-      const claimData = await claimRes.json();
+      let claimData = null;
+      let claimToken = initialToken;
+      
+      while (true) {
+        const ignoreVotes = $('ignoreVotesSetting').checked;
+        const claimUrl = `${WORKER_URL}/claim?fp=${userFp}&ignore_votes=${ignoreVotes}` + (claimToken ? `&turnstile_token=${claimToken}` : '');
+        const claimRes = await fetch(claimUrl, { cache: 'no-store' });
+        claimData = await claimRes.json();
 
-      if (!claimData.ok) {
+        if (claimData.ok) break;
+
         if (claimData.need_turnstile) {
-          stopProgress();
           log('触发风控限制，需要验证', 'err');
-          $('spinner').classList.remove('on');
           $('btnText').textContent = '请完成验证';
-          
           const newToken = await showTurnstile();
-          busy = false;
-          if (newToken) { doFetch(newToken); }
-          else { $('getBtn').disabled = false; $('btnText').textContent = '获取'; }
-          return;
+          if (!newToken) throw new Error('验证取消');
+          claimToken = newToken;
+          $('btnText').textContent = '获取账号中…';
+          continue;
         }
         throw new Error(claimData.error || '获取账号失败');
       }
@@ -559,12 +594,25 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
       loadInfo();
       $('btnText').textContent = '转换 Cookie 中…';
 
-      const convUrl = `${WORKER_URL}/convert?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&key=${channel_key}`;
-      const convRes = await fetch(convUrl, { cache: 'no-store' });
-      const convData = await convRes.json();
+      let convData = null;
+      let convToken = '';
+      
+      while (true) {
+        const convUrl = `${WORKER_URL}/convert?fp=${userFp}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&key=${channel_key}` + (convToken ? `&turnstile_token=${convToken}` : '');
+        const convRes = await fetch(convUrl, { cache: 'no-store' });
+        convData = await convRes.json();
 
-      if (!convData.ok) {
-        throw new Error('Cookie 转换失败，请稍后再试');
+        if (convData.ok) break;
+
+        if (convData.need_turnstile) {
+          log('转换触发风控，需要验证', 'err');
+          $('btnText').textContent = '验证转换中…';
+          const newToken = await showTurnstile();
+          if (!newToken) throw new Error('验证取消');
+          convToken = newToken;
+          continue;
+        }
+        throw new Error(convData.error || '转换失败');
       }
 
       const cookies = convData.cookies;
