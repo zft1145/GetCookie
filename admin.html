@@ -30,48 +30,44 @@ html[data-theme="dark"]{
   --md-elev2:0 1px 2px rgba(0,0,0,.55),0 2px 6px 2px rgba(0,0,0,.30);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{
-  margin:0;font-family:'Roboto','Noto Sans SC',system-ui,-apple-system,'Segoe UI',sans-serif;
-  font-size:14px;line-height:1.5;background:var(--md-surface);color:var(--md-on-surface);
-  -webkit-font-smoothing:antialiased;transition:background-color .25s,color .25s;
-}
-.app-bar{
-  position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;
-  height:64px;padding:0 8px 0 20px;background:var(--md-surface-container);
-}
-.app-bar h1{margin:0;font-size:17px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.spacer{flex:1}
-.icon-button{
-  width:48px;height:48px;flex:0 0 48px;border:none;border-radius:50%;
-  background:transparent;color:var(--md-on-surface-variant);
-  display:grid;place-items:center;cursor:pointer;transition:background .15s;
-}
-.icon-button:hover{background:var(--md-surface-container-high)}
-.content{max-width:640px;margin:0 auto;padding:16px 16px 96px}
-.card{background:var(--md-surface-container-low);border-radius:16px;padding:20px;margin-bottom:16px}
-.card-title{margin:0 0 12px;font-size:15px;font-weight:500}
-.label{font-size:12px;letter-spacing:.4px;color:var(--md-on-surface-variant);margin-bottom:6px}
+body{margin:0;font-family:'Roboto','Noto Sans SC',system-ui,sans-serif;font-size:14px;line-height:1.5;background:var(--md-surface);color:var(--md-on-surface);-webkit-font-smoothing:antialiased;transition:background-color .25s,color .25s;}
+.app-bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;height:64px;padding:0 8px 0 20px;background:var(--md-surface-container);}
+.app-bar h1{margin:0;font-size:17px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.spacer{flex:1;}
+.icon-button{width:48px;height:48px;flex:0 0 48px;border:none;border-radius:50%;background:transparent;color:var(--md-on-surface-variant);display:grid;place-items:center;cursor:pointer;transition:background .15s;}
+.icon-button:hover{background:var(--md-surface-container-high);}
+.content{max-width:640px;margin:0 auto;padding:16px 16px 96px;}
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.card{background:var(--md-surface-container-low);border-radius:16px;padding:20px;margin-bottom:16px;animation:fadeUp 0.4s cubic-bezier(0.2,0,0,1) forwards;opacity:0;}
+.card-title{margin:0 0 12px;font-size:15px;font-weight:500;}
+.label{font-size:12px;letter-spacing:.4px;color:var(--md-on-surface-variant);margin-bottom:6px;}
 
 .admin-list { border: 1px solid var(--md-outline-variant); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
-.admin-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--md-outline-variant); background: var(--md-surface-container-lowest); }
+.admin-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--md-outline-variant); background: var(--md-surface-container-lowest); transition: background 0.3s; }
 .admin-item:last-child { border-bottom: none; }
 
-.copy-btn{
-  flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;
-  border:none;background:transparent;color:var(--md-primary);
-  font-family:inherit;font-size:13px;font-weight:500;
-  padding:8px 14px;border-radius:100px;cursor:pointer;transition:background .15s;
+.input-group { margin-bottom: 12px; }
+.input-group input {
+  width:100%;padding:12px;border-radius:8px;border:1px solid var(--md-outline-variant);
+  background:var(--md-surface-container);color:var(--md-on-surface);font-family:inherit;transition:border-color 0.2s;
 }
-.copy-btn:hover{background:rgba(103,80,164,.08)}
+.input-group input:focus { outline:none; border-color:var(--md-primary); }
 
-.snackbar{
-  position:fixed;left:50%;bottom:24px;z-index:100;transform:translate(-50%,140%);
-  max-width:calc(100% - 32px);padding:14px 20px;border-radius:8px;
-  background:var(--md-surface-container-highest);color:var(--md-on-surface);
-  font-size:14px;box-shadow:var(--md-elev2);opacity:0;pointer-events:none;
-  transition:transform .3s cubic-bezier(.2,0,0,1),opacity .3s;
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;padding:10px 20px;border-radius:100px;
+  border:none;background:var(--md-primary);color:var(--md-on-primary);font-weight:500;font-family:inherit;
+  cursor:pointer;transition:opacity .2s, transform .1s;
 }
-.snackbar.show{transform:translate(-50%,0);opacity:1}
+.btn:hover{opacity:0.9;}
+.btn:active{transform:scale(0.98);}
+.btn-outline{background:transparent;color:var(--md-primary);border:1px solid var(--md-outline-variant);}
+.btn-outline:hover{background:var(--md-surface-container);}
+.copy-btn{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;border:none;background:transparent;color:var(--md-primary);font-family:inherit;font-size:13px;font-weight:500;padding:8px 14px;border-radius:100px;cursor:pointer;transition:background .15s;}
+.copy-btn:hover{background:rgba(103,80,164,.08);}
+
+.snackbar{position:fixed;left:50%;bottom:24px;z-index:100;transform:translate(-50%,140%);max-width:calc(100% - 32px);padding:14px 20px;border-radius:8px;background:var(--md-surface-container-highest);color:var(--md-on-surface);font-size:14px;box-shadow:var(--md-elev2);opacity:0;pointer-events:none;transition:transform .3s, opacity .3s;}
+.snackbar.show{transform:translate(-50%,0);opacity:1;}
 </style>
 </head>
 <body>
@@ -88,13 +84,41 @@ body{
 <main class="content" id="appContent">
   <section class="card" id="authCard" style="display:none">
     <h2 class="card-title">管理员鉴权</h2>
-    <input type="password" id="adminKeyInput" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--md-outline-variant);background:var(--md-surface-container);color:var(--md-on-surface);margin-bottom:12px;font-family:monospace" placeholder="请输入管理员密钥">
-    <button class="copy-btn" id="authBtn" style="width:100%;background:var(--md-primary);color:#fff;padding:12px">验证进入</button>
+    <div class="input-group">
+      <input type="password" id="adminKeyInput" placeholder="请输入管理员密钥">
+    </div>
+    <button class="btn" id="authBtn" style="width:100%;">验证进入</button>
+  </section>
+
+  <!-- 新增通道表单 -->
+  <section class="card" id="addChannelCard" style="display:none">
+    <h2 class="card-title">增加新通道</h2>
+    <div class="input-group">
+      <input type="text" id="newChannelName" placeholder="通道名称 (例如: 通道 4)">
+    </div>
+    <div class="input-group">
+      <input type="text" id="newChannelKey" placeholder="API 密钥 (aku_...)">
+    </div>
+    <button class="btn" id="addChannelBtn" style="width:100%;">保存通道</button>
   </section>
 
   <section class="card" id="dataCard" style="display:none">
     <h2 class="card-title">通道状态管理</h2>
     <div class="admin-list" id="channelList">加载中…</div>
+  </section>
+
+  <!-- 系统配置表单 (Turnstile) -->
+  <section class="card" id="configCard" style="display:none">
+    <h2 class="card-title">系统设置 (Turnstile)</h2>
+    <div class="label">Site Key (前端验证码)</div>
+    <div class="input-group">
+      <input type="text" id="cfgSiteKey" placeholder="1x00000000000000000000AA">
+    </div>
+    <div class="label">Secret Key (后端验证)</div>
+    <div class="input-group">
+      <input type="text" id="cfgSecret" placeholder="1x0000000000000000000000000000000AA">
+    </div>
+    <button class="btn btn-outline" id="saveConfigBtn" style="width:100%;">保存配置</button>
   </section>
 
   <section class="card" id="userCard" style="display:none">
@@ -111,7 +135,6 @@ body{
 
   const WORKER_URL = "https://cookiew.xtz1.top";
   let ADMIN_KEY = new URLSearchParams(location.search).get('key') || '';
-
   const $ = id => document.getElementById(id);
   const snackbar = $('snackbar');
   let snackTimer;
@@ -130,17 +153,14 @@ body{
       const data = await res.json();
       
       if (!data.ok) {
-        toast(data.msg || '鉴权失败');
-        $('dataCard').style.display = 'none';
-        $('userCard').style.display = 'none';
+        toast(data.error || '鉴权失败');
+        ['addChannelCard','dataCard','configCard','userCard'].forEach(id => $(id).style.display = 'none');
         $('authCard').style.display = 'block';
         return;
       }
 
-      // 鉴权成功，显示面板
-      $('authCard').style.display = 'none';
-      $('dataCard').style.display = 'block';
-      $('userCard').style.display = 'block';
+      ['authCard'].forEach(id => $(id).style.display = 'none');
+      ['addChannelCard','dataCard','configCard','userCard'].forEach(id => $(id).style.display = 'block');
 
       $('channelList').innerHTML = data.channels.map(c => `
         <div class="admin-item">
@@ -153,6 +173,12 @@ body{
           </button>
         </div>
       `).join('');
+
+      // 填充配置
+      if (data.config) {
+        $('cfgSiteKey').value = data.config.turnstile_site_key || '';
+        $('cfgSecret').value = data.config.turnstile_secret || '';
+      }
 
       const userKeys = Object.keys(data.users);
       if (userKeys.length === 0) {
@@ -180,8 +206,7 @@ body{
 
   window.toggleChannel = async (id, active) => {
     await fetch(`${WORKER_URL}/admin/api?key=${ADMIN_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'toggle_channel', id, active })
     });
     loadData();
@@ -189,8 +214,7 @@ body{
 
   window.toggleUser = async (fingerprint, status) => {
     await fetch(`${WORKER_URL}/admin/api?key=${ADMIN_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'ban_user', fingerprint, status })
     });
     loadData();
@@ -198,20 +222,40 @@ body{
 
   $('authBtn').addEventListener('click', () => {
     const key = $('adminKeyInput').value.trim();
-    if (key) {
-      ADMIN_KEY = key;
-      loadData();
-    }
+    if (key) { ADMIN_KEY = key; loadData(); }
   });
 
-  // 初始化判断
-  if (ADMIN_KEY) {
+  // 新增通道
+  $('addChannelBtn').addEventListener('click', async () => {
+    const name = $('newChannelName').value.trim();
+    const key = $('newChannelKey').value.trim();
+    if (!name || !key) return toast('请填写完整信息');
+    
+    await fetch(`${WORKER_URL}/admin/api?key=${ADMIN_KEY}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add_channel', name, key })
+    });
+    $('newChannelName').value = ''; $('newChannelKey').value = '';
+    toast('添加成功');
     loadData();
-  } else {
-    $('authCard').style.display = 'block';
-  }
+  });
 
-  // 主题切换
+  // 保存 Turnstile 配置
+  $('saveConfigBtn').addEventListener('click', async () => {
+    const turnstile_site_key = $('cfgSiteKey').value.trim();
+    const turnstile_secret = $('cfgSecret').value.trim();
+    
+    await fetch(`${WORKER_URL}/admin/api?key=${ADMIN_KEY}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save_config', config: { turnstile_site_key, turnstile_secret } })
+    });
+    toast('配置已保存');
+  });
+
+  if (ADMIN_KEY) loadData();
+  else $('authCard').style.display = 'block';
+
+  // 主题
   const mq = window.matchMedia('(prefers-color-scheme: dark)');
   function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
@@ -225,4 +269,4 @@ body{
 })();
 </script>
 </body>
-  </html>
+</html>
