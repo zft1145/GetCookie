@@ -96,9 +96,8 @@ async function verifyTurnstile(token, secret) {
 function getRandomChannel(channels, ignoreVotes) {
   const active = channels.filter(c => c.active);
   if (active.length === 0) return null;
-  if (ignoreVotes || active.length === 1) {
-    return active[Math.floor(Math.random() * active.length)];
-  }
+  if (ignoreVotes || active.length === 1) return active[Math.floor(Math.random() * active.length)];
+  
   const weighted = active.map(c => {
     let w = 1 + (c.votes || 0);
     if (w < 0.1) w = 0.1;
@@ -142,11 +141,7 @@ export default {
         if (clientKey !== adminKey) return json({ ok: false, error: "密钥错误" }, 403, origin);
 
         if (request.method === "GET") {
-          const [channelsStr, usersStr, configStr] = await Promise.all([
-            kv.get("channels"),
-            kv.get("users"),
-            kv.get("config")
-          ]);
+          const [channelsStr, usersStr, configStr] = await Promise.all([kv.get("channels"), kv.get("users"), kv.get("config")]);
           let channels = JSON.parse(channelsStr || "[]");
           let users = JSON.parse(usersStr || "{}");
           let config = JSON.parse(configStr || "{}");
@@ -184,13 +179,14 @@ export default {
             return json({ ok: true }, 200, origin);
           }
           if (body.action === "reset_user_quota") {
-  let users = JSON.parse(await kv.get("users") || "{}");
-  if (users[body.fingerprint]) {
-    users[body.fingerprint].count = 0;
-    users[body.fingerprint].req_times = []; // 顺便清空风控限制
-    await kv.put("users", JSON.stringify(users));
-  }
-  return json({ ok: true }, 200, origin);
+            let users = JSON.parse(await kv.get("users") || "{}");
+            if (users[body.fingerprint]) {
+              users[body.fingerprint].count = 0;
+              users[body.fingerprint].suspicion = 0;
+              users[body.fingerprint].req_times = [];
+              await kv.put("users", JSON.stringify(users));
+            }
+            return json({ ok: true }, 200, origin);
           }
         }
         return json({ ok: false, error: "Invalid Request" }, 400, origin);
@@ -200,7 +196,6 @@ export default {
         const channelId = parseInt(url.searchParams.get("channel"), 10);
         const action = url.searchParams.get("action");
         if (!channelId || !action) return json({ ok: false, error: "参数错误" }, 400, origin);
-        
         let channels = JSON.parse(await kv.get("channels") || "[]");
         channels = channels.map(c => {
            if (c.id === channelId) {
@@ -217,16 +212,9 @@ export default {
         const fingerprint = url.searchParams.get("fp");
         const cdkInput = url.searchParams.get("cdk");
         if (!fingerprint || !cdkInput) return json({ ok: false, error: "参数错误" }, 400, origin);
-
-        const [configStr, usersStr] = await Promise.all([
-          kv.get("config"),
-          kv.get("users")
-        ]);
+        const [configStr, usersStr] = await Promise.all([kv.get("config"), kv.get("users")]);
         let config = JSON.parse(configStr || "{}");
-        if (cdkInput.trim() !== config.cdk) {
-          return json({ ok: false, error: "兑换码无效" }, 400, origin);
-        }
-
+        if (cdkInput.trim() !== config.cdk) return json({ ok: false, error: "兑换码无效" }, 400, origin);
         let users = JSON.parse(usersStr || "{}");
         let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", req_times: [] };
         user.vip = true; 
@@ -242,7 +230,6 @@ export default {
         let users = JSON.parse(usersStr || "{}");
         let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", vip: false };
         if (user.date !== getTodayStr()) user.count = 0;
-
         let config = JSON.parse(configStr || "{}");
         const limit = user.vip ? DAILY_LIMIT_VIP : DAILY_LIMIT_NORMAL;
         return json({
@@ -263,7 +250,7 @@ export default {
 
         const [usersStr, channelsStr, configStr] = await Promise.all([kv.get("users"), kv.get("channels"), kv.get("config")]);
         let users = JSON.parse(usersStr || "{}");
-        let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", req_times: [], vip: false };
+        let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", vip: false, suspicion: 0, last_time: 0 };
         let config = JSON.parse(configStr || "{}");
 
         if (user.status === "banned") return json({ ok: false, error: "已被封禁" }, 403, origin);
@@ -272,16 +259,19 @@ export default {
         const limit = user.vip ? DAILY_LIMIT_VIP : DAILY_LIMIT_NORMAL;
         if (user.count >= limit) return json({ ok: false, error: "网络错误，请稍后再试" }, 429, origin);
 
+        // 怀疑值风控逻辑
         const now = Math.floor(Date.now() / 1000);
-        user.req_times = (user.req_times || []).filter(t => now - t < 60);
-        const riskLimit = user.vip ? 5 : 3;
+        if (!user.last_time || now - user.last_time > 60) user.suspicion = 0;
+        user.suspicion = (user.suspicion || 0) + 0.5;
+        user.last_time = now;
         
-        if (user.req_times.length >= riskLimit) {
+        const riskLimit = user.vip ? 5 : 3;
+        if (user.suspicion >= riskLimit) {
           const token = url.searchParams.get("turnstile_token");
-          if (!token) return json({ ok: false, need_turnstile: true, error: "触发频率限制，请完成验证" }, 403, origin);
+          if (!token) return json({ ok: false, need_turnstile: true, error: "触发风控，请完成验证" }, 403, origin);
           const isValid = await verifyTurnstile(token, config.turnstile_secret);
           if (!isValid) return json({ ok: false, need_turnstile: true, error: "验证失败，请重试" }, 403, origin);
-          user.req_times = []; 
+          user.suspicion = 0; // 验证通过后重置
         }
 
         let channels = JSON.parse(channelsStr || "[]");
@@ -298,7 +288,6 @@ export default {
         }
 
         user.count += 1;
-        user.req_times.push(now);
         users[fingerprint] = user;
         await kv.put("users", JSON.stringify(users));
 
@@ -313,16 +302,50 @@ export default {
       }
 
       if (path === "/convert") {
+        const fingerprint = url.searchParams.get("fp");
         const username = url.searchParams.get("username");
         const password = url.searchParams.get("password");
-        const key = url.searchParams.get("key");
-        if (!username || !password || !key) return json({ ok: false, error: "缺少参数" }, 400, origin);
+        let key = url.searchParams.get("key");
+        if (!username || !password || !fingerprint) return json({ ok: false, error: "缺少参数" }, 400, origin);
+
+        const [usersStr, channelsStr, configStr] = await Promise.all([kv.get("users"), kv.get("channels"), kv.get("config")]);
+        let users = JSON.parse(usersStr || "{}");
+        let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", vip: false, suspicion: 0, last_time: 0 };
+        let config = JSON.parse(configStr || "{}");
+
+        // 怀疑值风控逻辑
+        const now = Math.floor(Date.now() / 1000);
+        if (!user.last_time || now - user.last_time > 60) user.suspicion = 0;
+        user.suspicion = (user.suspicion || 0) + 0.5;
+        user.last_time = now;
+        
+        const riskLimit = user.vip ? 5 : 3;
+        if (user.suspicion >= riskLimit) {
+          const token = url.searchParams.get("turnstile_token");
+          if (!token) return json({ ok: false, need_turnstile: true, error: "触发风控，请完成验证" }, 403, origin);
+          const isValid = await verifyTurnstile(token, config.turnstile_secret);
+          if (!isValid) return json({ ok: false, need_turnstile: true, error: "验证失败，请重试" }, 403, origin);
+          user.suspicion = 0;
+        }
+
+        if (!key || key === "default") {
+          let channels = JSON.parse(channelsStr || "[]");
+          const active = channels.filter(c => c.active);
+          if (active.length > 0) key = deobfuscate(active[0].key);
+          else return json({ ok: false, error: "无可用通道进行转换" }, 503, origin);
+        }
 
         const convR = await doConvertWithRetry(key, username, password);
         if (!convR.data || convR.data.code !== 1) {
-           return json({ ok: false, error: "网络错误，请稍后再试" }, 200, origin);
+           // 转换失败，退还 0.5 额度
+           user.count = Math.max(0, user.count - 0.5);
+           users[fingerprint] = user;
+           await kv.put("users", JSON.stringify(users));
+           return json({ ok: false, error: "网络错误，已退还0.5额度，请稍后再试" }, 200, origin);
         }
 
+        users[fingerprint] = user;
+        await kv.put("users", JSON.stringify(users));
         return json({ ok: true, cookies: pickCookies(convR.data) }, 200, origin);
       }
 
