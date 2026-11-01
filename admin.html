@@ -22,41 +22,23 @@ html[data-theme="dark"] {
   --md-outline-variant: #49454F; --md-error: #F2B8B5; --md-success: #B6F09C;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background: var(--md-surface); color: var(--md-on-surface); transition: background 0.3s; }
-.app-bar { display: flex; align-items: center; height: 64px; padding: 0 16px; background: var(--md-surface-container); transition: background 0.3s; }
+body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background: var(--md-surface); color: var(--md-on-surface); }
+.app-bar { display: flex; align-items: center; height: 64px; padding: 0 16px; background: var(--md-surface-container); }
 .app-bar h1 { margin: 0; font-size: 20px; font-weight: 500; flex: 1; }
-.icon-button { width: 48px; height: 48px; border-radius: 50%; border: none; background: transparent; color: var(--md-on-surface-variant); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
-.icon-button:active { background: var(--md-surface-container-highest); }
-
+.icon-button { width: 48px; height: 48px; border-radius: 50%; border: none; background: transparent; color: var(--md-on-surface-variant); display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .content { max-width: 640px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
-.card { background: var(--md-surface-container-low); border-radius: 24px; padding: 20px; transition: background 0.3s; }
+.card { background: var(--md-surface-container-low); border-radius: 24px; padding: 20px; }
 .card-title { margin: 0 0 16px 0; font-size: 15px; font-weight: 500; }
 .input-group { margin-bottom: 12px; }
-.input-group input {
-  width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--md-outline-variant);
-  background: var(--md-surface-container); color: var(--md-on-surface); font-family: inherit; font-size: 14px;
-}
+.input-group input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container); color: var(--md-on-surface); font-family: inherit; font-size: 14px; }
 .input-group input:focus { outline: none; border-color: var(--md-primary); }
-
 .btn-row { display: flex; gap: 8px; margin-bottom: 12px; }
-.btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 12px; border-radius: 100px; border: none; background: var(--md-primary); color: var(--md-on-primary); font-weight: 500; font-size: 14px; cursor: pointer; transition: transform 0.1s; text-decoration: none; }
-.btn:active { transform: scale(0.96); }
+.btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 12px; border-radius: 100px; border: none; background: var(--md-primary); color: var(--md-on-primary); font-weight: 500; font-size: 14px; cursor: pointer; text-decoration: none; }
 .btn-outline { background: transparent; color: var(--md-primary); border: 1px solid var(--md-outline-variant); }
-.btn-outline:active { background: var(--md-surface-container-highest); }
-
 .admin-list { border: 1px solid var(--md-outline-variant); border-radius: 16px; overflow: hidden; }
-.admin-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--md-outline-variant); background: var(--md-surface-container-lowest); transition: background 0.3s; }
+.admin-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--md-outline-variant); background: var(--md-surface-container-lowest); }
 .admin-item:last-child { border-bottom: none; }
 .copy-btn { border: none; background: transparent; color: var(--md-primary); cursor: pointer; font-weight: 500; font-size: 14px; padding: 6px 12px; border-radius: 100px; }
-.copy-btn:active { background: rgba(103,80,164,0.1); }
-
-.switch { position: relative; display: inline-block; width: 52px; height: 32px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--md-surface-container-highest); transition: .4s; border-radius: 34px; }
-.slider:before { position: absolute; content: ""; height: 24px; width: 24px; left: 4px; bottom: 4px; background-color: var(--md-outline); transition: .4s; border-radius: 50%; }
-input:checked + .slider { background-color: var(--md-primary); }
-input:checked + .slider:before { transform: translateX(20px); background-color: var(--md-on-primary); }
-
 .snackbar { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 100px); background: var(--md-surface-container-highest); color: var(--md-on-surface); padding: 12px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transition: all 0.3s; z-index: 100; }
 .snackbar.show { transform: translate(-50%, 0); opacity: 1; }
 </style>
@@ -103,15 +85,6 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
 
   <section class="card" id="configCard" style="display:none">
     <h2 class="card-title">系统设置</h2>
-    
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding:0 4px;">
-      <span style="font-size:14px;">忽略投票 (纯随机分配)</span>
-      <label class="switch">
-        <input type="checkbox" id="cfgIgnoreVotes">
-        <span class="slider"></span>
-      </label>
-    </div>
-
     <div class="input-group">
       <input type="text" id="cfgSiteKey" placeholder="Turnstile Site Key">
     </div>
@@ -158,16 +131,15 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
       }
 
       $('authCard').style.display = 'none';
-      ['navBtns','addChannelCard','dataCard','configCard','userCard'].forEach(id => $(id).style.display = 'flex');
-      $('addChannelCard').style.display = 'block';
-      $('dataCard').style.display = 'block';
-      $('configCard').style.display = 'block';
-      $('userCard').style.display = 'block';
+      ['navBtns','addChannelCard','dataCard','configCard','userCard'].forEach(id => {
+        $(id).style.display = 'flex';
+        if(id !== 'navBtns') $(id).style.display = 'block';
+      });
 
       $('channelList').innerHTML = data.channels.map(c => `
         <div class="admin-item">
           <div>
-            <strong>${c.name}</strong> <span style="font-size:12px;color:var(--md-primary)">(票数: ${c.votes||0})</span>
+            <strong>${c.name}</strong> <span style="font-size:12px;color:${c.votes>=0?'var(--md-success)':'var(--md-error)'}">(票数: ${c.votes||0})</span>
             <br><span style="font-size:12px;color:var(--md-on-surface-variant)">${c.key}</span>
           </div>
           <button class="copy-btn" onclick="toggleChannel(${c.id}, ${!c.active})" style="color:${c.active?'var(--md-success)':'var(--md-error)'}">
@@ -180,7 +152,6 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
         $('cfgSiteKey').value = data.config.turnstile_site_key || '';
         $('cfgSecret').value = data.config.turnstile_secret || '';
         $('cfgCdk').value = data.config.cdk || '';
-        $('cfgIgnoreVotes').checked = data.config.ignore_votes || false;
       }
 
       const userKeys = Object.keys(data.users);
@@ -244,10 +215,9 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
     const turnstile_site_key = $('cfgSiteKey').value.trim();
     const turnstile_secret = $('cfgSecret').value.trim();
     const cdk = $('cfgCdk').value.trim();
-    const ignore_votes = $('cfgIgnoreVotes').checked;
     await fetch(`https://cookiew.xtz1.top/admin/api?key=${ADMIN_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'save_config', config: { turnstile_site_key, turnstile_secret, cdk, ignore_votes } })
+      body: JSON.stringify({ action: 'save_config', config: { turnstile_site_key, turnstile_secret, cdk } })
     });
     toast('配置已保存');
   });
