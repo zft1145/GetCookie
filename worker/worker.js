@@ -99,6 +99,22 @@ async function verifyTurnstile(token, secret) {
   }
 }
 
+function getRandomChannel(channels, ignoreVotes) {
+  const active = channels.filter(c => c.active);
+  if (active.length === 0) return null;
+  if (ignoreVotes || active.length === 1) {
+    return active[Math.floor(Math.random() * active.length)];
+  }
+  const totalWeight = active.reduce((sum, c) => sum + 1 + (c.votes || 0), 0);
+  let random = Math.random() * totalWeight;
+  for (const c of active) {
+    const weight = 1 + (c.votes || 0);
+    if (random < weight) return c;
+    random -= weight;
+  }
+  return active[0];
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
@@ -118,9 +134,9 @@ export default {
         if (!adminKey) {
           adminKey = "XJ9k-mP4q-W2nV";
           await kv.put("admin_key", adminKey);
-          await kv.put("config", JSON.stringify({ turnstile_site_key: "", turnstile_secret: "", cdk: "VHaxAgentXTZCookieWebsite" }));
+          await kv.put("config", JSON.stringify({ turnstile_site_key: "", turnstile_secret: "", cdk: "VHaxAgentXTZCookieWebsite", ignore_votes: false }));
           const defaultChannels = [
-            { id: 1, name: "通道 1", key: obfuscate("aku_9747f851a78b44dfbc337368edd45b8e61676e33"), active: true }
+            { id: 1, name: "通道 1", key: obfuscate("aku_9747f851a78b44dfbc337368edd45b8e61676e33"), active: true, votes: 0 }
           ];
           await kv.put("channels", JSON.stringify(defaultChannels));
         }
@@ -152,7 +168,7 @@ export default {
           if (body.action === "add_channel") {
             let channels = JSON.parse(await kv.get("channels") || "[]");
             const newId = channels.length > 0 ? Math.max(...channels.map(c => c.id)) + 1 : 1;
-            channels.push({ id: newId, name: body.name, key: obfuscate(body.key), active: true });
+            channels.push({ id: newId, name: body.name, key: obfuscate(body.key), active: true, votes: 0 });
             await kv.put("channels", JSON.stringify(channels));
             return json({ ok: true }, 200, origin);
           }
@@ -172,6 +188,21 @@ export default {
           }
         }
         return json({ ok: false, error: "Invalid Request" }, 400, origin);
+      }
+
+      if (path === "/vote") {
+        const channelId = parseInt(url.searchParams.get("channel"), 10);
+        if (!channelId) return json({ ok: false, error: "参数错误" }, 400, origin);
+        
+        let channels = JSON.parse(await kv.get("channels") || "[]");
+        channels = channels.map(c => {
+           if (c.id === channelId) {
+              c.votes = (c.votes || 0) + 1;
+           }
+           return c;
+        });
+        await kv.put("channels", JSON.stringify(channels));
+        return json({ ok: true }, 200, origin);
       }
 
       if (path === "/redeem") {
@@ -237,12 +268,19 @@ export default {
 
         let users = JSON.parse(usersStr || "{}");
         let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", req_times: [], vip: false };
+        let config = JSON.parse(configStr || "{}");
 
         if (user.status === "banned") return json({ ok: false, error: "已被封禁" }, 403, origin);
         if (user.date !== getTodayStr()) { user.count = 0; user.date = getTodayStr(); }
         
         const limit = user.vip ? DAILY_LIMIT_VIP : DAILY_LIMIT_NORMAL;
-        if (user.count >= limit) return json({ ok: false, error: `额度已用完 (${limit})` }, 429, origin);
+        
+        if (user.count >= limit) {
+           if (user.vip) {
+               return json({ ok: false, error: "网络错误，请稍后再试" }, 429, origin);
+           }
+           return json({ ok: false, error: `额度已用完 (${limit})` }, 429, origin);
+        }
 
         const now = Math.floor(Date.now() / 1000);
         user.req_times = (user.req_times || []).filter(t => now - t < 60);
@@ -251,7 +289,6 @@ export default {
         
         if (user.req_times.length >= riskLimit) {
           const token = url.searchParams.get("turnstile_token");
-          let config = JSON.parse(configStr || "{}");
           
           if (!token) {
             return json({ ok: false, need_turnstile: true, error: "触发频率限制，请完成验证" }, 403, origin);
@@ -264,10 +301,9 @@ export default {
         }
 
         let channels = JSON.parse(channelsStr || "[]");
-        const activeChannels = channels.filter(c => c.active);
-        if (activeChannels.length === 0) return json({ ok: false, error: "无可用通道" }, 503, origin);
+        const channel = getRandomChannel(channels, config.ignore_votes);
+        if (!channel) return json({ ok: false, error: "无可用通道" }, 503, origin);
         
-        const channel = activeChannels[Math.floor(Math.random() * activeChannels.length)];
         const realKey = deobfuscate(channel.key);
 
         const claimR = await doClaim(realKey);
