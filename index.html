@@ -368,6 +368,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
 
     toast('正在转换...');
     try {
+      // 注意：历史记录转换不传 refund=true，因为之前没扣次数
       const convUrl = `${WORKER_URL}/convert?fp=${userFp}&username=${encodeURIComponent(h.username)}&password=${encodeURIComponent(h.password)}&key=${h.channelKey || 'default'}`;
       const convRes = await fetch(convUrl, { cache: 'no-store' });
       const convData = await convRes.json();
@@ -380,7 +381,6 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
         $('outCookie').textContent = convData.cookies;
         $('voteGroup').style.display = 'none';
         
-        // 更新历史记录
         history[index].cookies = convData.cookies;
         localStorage.setItem('cookies_history', JSON.stringify(history));
         renderHistory($('historySearch').value);
@@ -416,7 +416,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
           $('userQuota').style.color = 'var(--md-primary)';
           $('userStatusText').textContent = `您今日已获取 ${data.used} 次 (无限额度)`;
           $('redeemCard').style.display = 'none';
-          $('floatingAd').style.opacity = '0'; // VIP隐藏水印
+          $('floatingAd').style.opacity = '0';
           $('getBtn').disabled = false; $('btnText').textContent = '获取';
         } else {
           isVipMode = false;
@@ -598,7 +598,8 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
       let convToken = '';
       
       while (true) {
-        const convUrl = `${WORKER_URL}/convert?fp=${userFp}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&key=${channel_key}` + (convToken ? `&turnstile_token=${convToken}` : '');
+        // 自动获取流程，转换失败需要退 0.5，所以带上 refund=true
+        const convUrl = `${WORKER_URL}/convert?fp=${userFp}&refund=true&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&key=${channel_key}` + (convToken ? `&turnstile_token=${convToken}` : '');
         const convRes = await fetch(convUrl, { cache: 'no-store' });
         convData = await convRes.json();
 
