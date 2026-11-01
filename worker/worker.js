@@ -302,11 +302,12 @@ export default {
       }
 
       if (path === "/convert") {
-        const fingerprint = url.searchParams.get("fp");
-        const username = url.searchParams.get("username");
-        const password = url.searchParams.get("password");
-        let key = url.searchParams.get("key");
-        if (!username || !password || !fingerprint) return json({ ok: false, error: "缺少参数" }, 400, origin);
+  const fingerprint = url.searchParams.get("fp");
+  const username = url.searchParams.get("username");
+  const password = url.searchParams.get("password");
+  let key = url.searchParams.get("key");
+  const refund = url.searchParams.get("refund") === "true"; // 新增：是否需要退额
+  if (!username || !password || !fingerprint) return json({ ok: false, error: "缺少参数" }, 400, origin);
 
         const [usersStr, channelsStr, configStr] = await Promise.all([kv.get("users"), kv.get("channels"), kv.get("config")]);
         let users = JSON.parse(usersStr || "{}");
@@ -336,13 +337,15 @@ export default {
         }
 
         const convR = await doConvertWithRetry(key, username, password);
-        if (!convR.data || convR.data.code !== 1) {
-           // 转换失败，退还 0.5 额度
-           user.count = Math.max(0, user.count - 0.5);
-           users[fingerprint] = user;
-           await kv.put("users", JSON.stringify(users));
-           return json({ ok: false, error: "网络错误，已退还0.5额度，请稍后再试" }, 200, origin);
-        }
+if (!convR.data || convR.data.code !== 1) {
+   if (refund) {
+       user.count = Math.max(0, user.count - 0.5);
+       users[fingerprint] = user;
+       await kv.put("users", JSON.stringify(users));
+       return json({ ok: false, error: "转换失败，已退还0.5额度" }, 200, origin);
+   }
+   return json({ ok: false, error: "转换失败，请稍后再试" }, 200, origin);
+}
 
         users[fingerprint] = user;
         await kv.put("users", JSON.stringify(users));
