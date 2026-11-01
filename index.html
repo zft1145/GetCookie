@@ -6,118 +6,210 @@
 <title>4399 账号与 Cookies</title>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
+/* ================= M3 Expressive Design Tokens ================= */
 :root {
-  --md-primary: #6750A4; --md-on-primary: #FFFFFF;
-  --md-primary-container: #EADDFF; --md-on-primary-container: #21005D;
-  --md-surface: #FEF7FF; --md-surface-container-low: #F7F2FA;
-  --md-surface-container: #F3EDF7; --md-surface-container-high: #ECE6F0;
+  /* Primary (更有活力的紫色) */
+  --md-primary: #65558F; 
+  --md-on-primary: #FFFFFF;
+  --md-primary-container: #E9DDFF; 
+  --md-on-primary-container: #21005D;
+  
+  /* Surfaces & Backgrounds (更细腻的色阶) */
+  --md-surface: #FEF7FF; 
+  --md-surface-container-lowest: #FFFFFF;
+  --md-surface-container-low: #F7F2FA;
+  --md-surface-container: #F3EDF7; 
+  --md-surface-container-high: #ECE6F0;
   --md-surface-container-highest: #E6E0E9;
-  --md-on-surface: #1D1B20; --md-on-surface-variant: #49454F;
-  --md-outline: #79747E; --md-outline-variant: #CAC4D0;
-  --md-error: #B3261E; --md-success: #386A20;
-  --md-elev1: 0px 1px 2px rgba(0,0,0,0.3), 0px 1px 3px 1px rgba(0,0,0,0.15);
-  --md-elev2: 0px 1px 2px rgba(0,0,0,0.3), 0px 2px 6px 2px rgba(0,0,0,0.15);
+
+  /* Text & Outlines */
+  --md-on-surface: #1D1B20; 
+  --md-on-surface-variant: #49454F;
+  --md-outline-variant: #CAC4D0;
+  
+  /* Feedback */
+  --md-error: #B3261E;
+  --md-success: #386A20;
+
+  /* 弹簧动画曲线 */
+  --md-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --md-ease: cubic-bezier(0.2, 0, 0, 1);
 }
+
 html[data-theme="dark"] {
-  --md-primary: #D0BCFF; --md-on-primary: #381E72;
-  --md-primary-container: #4F378B; --md-on-primary-container: #EADDFF;
-  --md-surface: #141218; --md-surface-container-low: #1D1B20;
-  --md-surface-container: #211F26; --md-surface-container-high: #2B2930;
+  --md-primary: #D0BCFF; 
+  --md-on-primary: #381E72;
+  --md-primary-container: #4F378B; 
+  --md-on-primary-container: #EADDFF;
+  
+  --md-surface: #141218; 
+  --md-surface-container-lowest: #0F0D13;
+  --md-surface-container-low: #1D1B20;
+  --md-surface-container: #211F26; 
+  --md-surface-container-high: #2B2930;
   --md-surface-container-highest: #36343B;
-  --md-on-surface: #E6E0E9; --md-on-surface-variant: #CAC4D0;
-  --md-outline: #938F99; --md-outline-variant: #49454F;
-  --md-error: #F2B8B5; --md-success: #B6F09C;
-  --md-elev1: 0px 1px 2px rgba(0,0,0,0.55), 0px 1px 3px 1px rgba(0,0,0,0.30);
-  --md-elev2: 0px 1px 2px rgba(0,0,0,0.55), 0px 2px 6px 2px rgba(0,0,0,0.30);
+
+  --md-on-surface: #E6E0E9; 
+  --md-on-surface-variant: #CAC4D0;
+  --md-outline-variant: #49454F;
+
+  --md-error: #F2B8B5;
+  --md-success: #B6F09C;
 }
+
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body {
   margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif;
   background-color: var(--md-surface); color: var(--md-on-surface);
-  -webkit-font-smoothing: antialiased; transition: background-color 0.3s, color 0.3s;
-  padding-bottom: 100px; /* 留出悬浮窗空间 */
+  -webkit-font-smoothing: antialiased; transition: background-color 0.4s, color 0.4s;
+  padding-bottom: 140px; 
 }
-.app-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; height: 64px; padding: 0 16px; background-color: var(--md-surface); }
-.app-bar h1 { margin: 0; font-size: 22px; font-weight: 400; flex: 1; }
-.icon-button { width: 48px; height: 48px; border: none; border-radius: 50%; background: transparent; color: var(--md-on-surface-variant); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; margin-right: -12px; }
-.icon-button:hover { background: rgba(103,80,164,0.08); }
 
-.container { max-width: 600px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
-.card { background-color: var(--md-surface-container-low); border-radius: 16px; padding: 24px; transition: background 0.3s; }
-.card-title { margin: 0 0 16px 0; font-size: 16px; font-weight: 500; }
+/* App Bar */
+.app-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; height: 64px; padding: 0 16px; background-color: var(--md-surface); transition: background 0.4s; }
+.app-bar h1 { margin: 0; font-size: 26px; font-weight: 500; flex: 1; letter-spacing: -0.5px; }
+.icon-button { width: 48px; height: 48px; border: none; border-radius: 50%; background: transparent; color: var(--md-on-surface-variant); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.3s, transform 0.2s var(--md-spring); margin-right: -12px; }
+.icon-button:active { transform: scale(0.85); background: var(--md-surface-container-highest); }
 
-.status-layout { display: flex; align-items: center; justify-content: center; gap: 32px; margin-bottom: 24px; }
+.container { max-width: 600px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 20px; }
+
+/* MD3 Expressive Cards: 更大的圆角、极其平滑的过渡 */
+.card { 
+  background-color: var(--md-surface-container-low); 
+  border-radius: 32px; 
+  padding: 28px; 
+  transition: background 0.4s, box-shadow 0.3s; 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+.card-title { margin: 0 0 20px 0; font-size: 18px; font-weight: 500; color: var(--md-on-surface); letter-spacing: -0.2px; }
+
+/* 顶部状态：更具冲击力的排版 */
+.status-layout { display: flex; align-items: center; justify-content: center; gap: 24px; margin-bottom: 16px; }
 .status-item { text-align: center; }
-.status-value { color: var(--md-primary); font-size: 45px; font-weight: 500; line-height: 1.1; margin: 4px 0; font-variant-numeric: tabular-nums; }
-.status-divider { width: 1px; height: 48px; background-color: var(--md-outline-variant); }
-.status-hint { text-align: center; color: var(--md-on-surface-variant); font-size: 14px; margin-bottom: 24px; }
+.status-value { color: var(--md-primary); font-size: 52px; font-weight: 600; line-height: 1.1; margin: 8px 0; font-variant-numeric: tabular-nums; transition: transform 0.3s var(--md-spring); }
+.status-divider { width: 2px; height: 64px; background-color: var(--md-outline-variant); opacity: 0.4; border-radius: 2px; }
+.status-hint { text-align: center; color: var(--md-on-surface-variant); font-size: 14px; margin-bottom: 28px; }
 
-.filled-button { display: flex; align-items: center; justify-content: center; width: 100%; height: 56px; border: none; border-radius: 999px; background: var(--md-primary); color: var(--md-on-primary); font-size: 16px; font-weight: 500; cursor: pointer; transition: box-shadow 0.2s, transform 0.1s, opacity 0.2s; box-shadow: var(--md-elev1); }
-.filled-button:active { transform: scale(0.98); }
-.filled-button:disabled { background: var(--md-on-surface-variant); color: var(--md-surface); opacity: 0.38; box-shadow: none; transform: none; }
-.spinner { width: 20px; height: 20px; border-radius: 50%; border: 2px solid currentColor; border-top-color: transparent; animation: spin 0.8s linear infinite; display: none; margin-right: 8px; }
+/* 弹性按钮 */
+.filled-button { 
+  display: flex; align-items: center; justify-content: center; 
+  width: 100%; height: 60px; 
+  border: none; border-radius: 999px; 
+  background: var(--md-primary); color: var(--md-on-primary); 
+  font-size: 17px; font-weight: 500; cursor: pointer; 
+  transition: transform 0.2s var(--md-spring), background 0.3s, box-shadow 0.2s; 
+}
+.filled-button:active { transform: scale(0.95); }
+.filled-button:disabled { background: var(--md-surface-container-highest); color: var(--md-on-surface-variant); opacity: 0.5; transform: none; }
+.spinner { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid currentColor; border-top-color: transparent; animation: spin 0.8s linear infinite; display: none; margin-right: 10px; }
 .spinner.on { display: block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.result-list { display: flex; flex-direction: column; gap: 12px; }
-.result-item { display: flex; align-items: flex-start; justify-content: space-between; padding: 16px; background: var(--md-surface-container); border-radius: 12px; }
-.result-info { flex: 1; min-width: 0; }
-.result-label { color: var(--md-on-surface-variant); font-size: 12px; margin-bottom: 4px; }
-.result-text { font-family: monospace; font-size: 16px; color: var(--md-on-surface); word-break: break-all; white-space: pre-wrap; }
-.text-primary { color: var(--md-primary); }
+/* 结果面板容器 */
+.result-list { display: flex; flex-direction: column; gap: 16px; }
 
-.cookie-block { background: var(--md-surface-container-high); border-radius: 12px; padding: 16px; }
+/* 账号密码双栏布局 */
+.grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.result-item { 
+  display: flex; flex-direction: column; 
+  padding: 16px 20px; 
+  background: var(--md-surface-container); 
+  border-radius: 20px; 
+  position: relative; 
+  transition: background 0.3s;
+}
+.result-label { color: var(--md-on-surface-variant); font-size: 12px; margin-bottom: 6px; letter-spacing: 0.2px; }
+.result-text { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 15px; color: var(--md-on-surface); word-break: break-all; padding-right: 30px; }
+.text-primary { color: var(--md-primary); font-family: inherit; font-weight: 500; }
+
+/* 复制图标按钮 */
+.copy-icon-btn { 
+  position: absolute; right: 10px; bottom: 10px; 
+  padding: 8px; border: none; border-radius: 50%; 
+  background: transparent; color: var(--md-primary); 
+  cursor: pointer; display: flex; align-items: center; justify-content: center; 
+  transition: background 0.2s, transform 0.2s var(--md-spring); 
+}
+.copy-icon-btn:active { transform: scale(0.85); background: var(--md-surface-container-high); }
+
+/* Cookie 独立区块：深色/高亮背景，突出核心数据 */
+.cookie-block { 
+  display: flex; flex-direction: column; 
+  background: var(--md-surface-container-high); 
+  border-radius: 24px; 
+  padding: 20px; 
+}
 .cookie-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.cookie-content { font-family: monospace; font-size: 13px; line-height: 20px; color: var(--md-on-surface); word-break: break-all; white-space: pre-wrap; max-height: 200px; overflow-y: auto; background: var(--md-surface-container-lowest); padding: 12px; border-radius: 8px; border: 1px solid var(--md-outline-variant); }
+.text-button { 
+  padding: 8px 16px; border: none; border-radius: 100px; 
+  background: transparent; color: var(--md-primary); 
+  font-weight: 500; font-size: 14px; cursor: pointer; 
+  transition: background 0.2s, transform 0.2s var(--md-spring); 
+}
+.text-button:active { transform: scale(0.92); background: rgba(103,80,164,0.1); }
+.cookie-content { 
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace; 
+  font-size: 13px; line-height: 1.6; 
+  color: var(--md-on-surface-variant); 
+  word-break: break-all; white-space: pre-wrap; 
+  max-height: 200px; overflow-y: auto; 
+  background: var(--md-surface-container-lowest); 
+  padding: 16px; 
+  border-radius: 16px; 
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); 
+}
 
-.text-button { padding: 8px 16px; border: none; border-radius: 999px; background: transparent; color: var(--md-primary); font-weight: 500; cursor: pointer; transition: background 0.2s; }
-.text-button:hover { background: rgba(103,80,164,0.08); }
-
-.log-box { height: 120px; overflow-y: auto; background: var(--md-surface-container-highest); border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; color: var(--md-on-surface-variant); display: flex; flex-direction: column; gap: 4px; }
+/* 日志区 */
+.log-box { height: 100px; overflow-y: auto; background: var(--md-surface-container); border-radius: 20px; padding: 16px; font-family: ui-monospace, monospace; font-size: 12px; color: var(--md-on-surface-variant); display: flex; flex-direction: column; gap: 6px; }
 .log-ok { color: var(--md-success); }
 .log-err { color: var(--md-error); }
 
-/* 底部兑换码 */
-.redeem-box { display: flex; gap: 8px; }
-.redeem-box input {
-  flex: 1; padding: 0 16px; height: 48px; border-radius: 8px;
-  border: 1px solid var(--md-outline-variant);
-  background: var(--md-surface-container); color: var(--md-on-surface);
-  font-family: inherit; font-size: 14px;
+/* 兑换区 */
+.redeem-box { display: flex; gap: 10px; }
+.redeem-box input { 
+  flex: 1; padding: 0 20px; height: 56px; 
+  border-radius: 16px; border: 2px solid var(--md-outline-variant); 
+  background: var(--md-surface-container); color: var(--md-on-surface); 
+  font-family: inherit; font-size: 15px; transition: border-color 0.3s, background 0.3s; 
 }
-.redeem-box input:focus { outline: none; border-color: var(--md-primary); }
-.redeem-btn {
-  height: 48px; padding: 0 24px; border-radius: 8px; border: none;
-  background: var(--md-primary); color: var(--md-on-primary);
-  font-weight: 500; cursor: pointer; transition: opacity 0.2s;
+.redeem-box input:focus { outline: none; border-color: var(--md-primary); background: var(--md-surface-container-high); }
+.redeem-btn { 
+  height: 56px; padding: 0 28px; border-radius: 16px; border: none; 
+  background: var(--md-primary); color: var(--md-on-primary); 
+  font-weight: 500; font-size: 15px; cursor: pointer; 
+  transition: transform 0.2s var(--md-spring), opacity 0.2s; 
 }
-.redeem-btn:disabled { opacity: 0.5; cursor: default; }
+.redeem-btn:active { transform: scale(0.95); }
+.redeem-btn:disabled { opacity: 0.5; transform: none; }
 
-/* 右下角贴边悬浮窗 */
+/* ================= 右下角贴边悬浮窗 ================= */
 .floating-ad {
-  position: fixed; right: 0; bottom: 24px; z-index: 100;
-  background: linear-gradient(135deg, #6750A4, #D0BCFF);
+  position: fixed; 
+  right: 0; 
+  bottom: 100px; /* 固定在视线右下方 */
+  z-index: 100;
+  background: linear-gradient(135deg, #65558F, #8E7CC3);
   color: #FFF; text-decoration: none;
-  padding: 12px 20px;
-  border-radius: 16px 0 0 0; /* 左上角圆角 */
-  box-shadow: -2px 2px 10px rgba(0,0,0,0.2);
-  font-size: 13px; line-height: 1.4;
+  padding: 14px 20px;
+  border-radius: 20px 0 0 20px; /* 左上角大圆角 */
+  box-shadow: -4px 6px 20px rgba(101, 85, 143, 0.3);
   display: flex; flex-direction: column; align-items: flex-start;
-  transform: translateX(5px);
-  transition: transform 0.2s;
+  transition: transform 0.3s var(--md-spring), box-shadow 0.3s;
+  transform-origin: right center;
 }
-.floating-ad:hover { transform: translateX(0); }
-.floating-ad strong { font-size: 14px; color: #FFF; }
-.floating-ad span { color: #EADDFF; font-size: 12px; }
+.floating-ad:hover { transform: scale(1.05) translateX(-4px); }
+.floating-ad:active { transform: scale(0.95); }
+.floating-ad strong { font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
+.floating-ad span { color: #E9DDFF; font-size: 12px; margin-top: 4px; font-weight: 400; }
 
-/* Modal */
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+/* Modal & Snackbar */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
 .modal-overlay.show { opacity: 1; pointer-events: auto; }
-.modal-box { background: var(--md-surface-container-high); border-radius: 28px; padding: 24px; width: 90%; max-width: 360px; text-align: center; transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1); }
+.modal-box { background: var(--md-surface-container-high); border-radius: 36px; padding: 32px 24px; width: 90%; max-width: 340px; text-align: center; transform: scale(0.85); transition: transform 0.4s var(--md-spring); box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
 .modal-overlay.show .modal-box { transform: scale(1); }
-#turnstile-container { display: flex; justify-content: center; margin: 16px 0; min-height: 65px; }
-.snackbar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--md-surface-container-highest); color: var(--md-on-surface); padding: 14px 24px; border-radius: 8px; box-shadow: var(--md-elev1); font-size: 14px; opacity: 0; pointer-events: none; transition: transform 0.3s, opacity 0.3s; z-index: 1000; }
-.snackbar.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+#turnstile-container { display: flex; justify-content: center; margin: 20px 0; min-height: 65px; }
+.snackbar { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(100px) scale(0.9); background: var(--md-surface-container-highest); color: var(--md-on-surface); padding: 16px 28px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 14px; font-weight: 500; opacity: 0; pointer-events: none; transition: transform 0.4s var(--md-spring), opacity 0.3s; z-index: 1000; }
+.snackbar.show { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
 </style>
 </head>
 <body>
@@ -131,6 +223,7 @@ body {
 </header>
 
 <main class="container">
+  <!-- 顶部状态卡片 -->
   <section class="card">
     <div class="status-layout">
       <div class="status-item">
@@ -150,39 +243,48 @@ body {
     </button>
   </section>
 
+  <!-- 提取结果卡片 -->
   <section class="card">
     <h2 class="card-title">提取结果</h2>
     <div class="result-list">
-      <div class="result-item" style="padding: 12px 16px;">
-        <div class="result-info">
-          <div class="result-label">来源通道</div>
-          <div class="result-text text-primary" id="outChannel" style="font-family:inherit">—</div>
-        </div>
+      
+      <!-- 来源通道单独一行 -->
+      <div class="result-item" style="padding: 16px 20px;">
+        <div class="result-label">来源通道</div>
+        <div class="result-text text-primary" id="outChannel">—</div>
       </div>
-      <div class="result-item">
-        <div class="result-info">
+
+      <!-- 账号和密码同行显示 -->
+      <div class="grid-row">
+        <div class="result-item">
           <div class="result-label">账号</div>
           <div class="result-text" id="outUser">—</div>
+          <button class="copy-icon-btn" data-copy="outUser" title="复制账号">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
         </div>
-        <button class="text-button" data-copy="outUser">复制</button>
-      </div>
-      <div class="result-item">
-        <div class="result-info">
+        <div class="result-item">
           <div class="result-label">密码</div>
           <div class="result-text" id="outPass">—</div>
+          <button class="copy-icon-btn" data-copy="outPass" title="复制密码">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
         </div>
-        <button class="text-button" data-copy="outPass">复制</button>
       </div>
+
+      <!-- 独立 Cookie 行 -->
       <div class="cookie-block">
         <div class="cookie-header">
-          <div class="result-label" style="margin:0">Cookie获取</div>
+          <div class="result-label" style="margin:0;font-weight:600;font-size:14px;color:var(--md-on-surface)">Cookie 数据</div>
           <button class="text-button" data-copy="outCookie">复制</button>
         </div>
         <div class="cookie-content" id="outCookie">—</div>
       </div>
+
     </div>
   </section>
 
+  <!-- 运行日志 -->
   <section class="card">
     <h2 class="card-title">运行日志</h2>
     <div class="log-box" id="log"></div>
@@ -195,11 +297,11 @@ body {
       <input type="text" id="cdkInput" placeholder="请输入兑换码">
       <button class="redeem-btn" id="redeemBtn">兑换</button>
     </div>
-    <div id="vipStatusText" style="font-size:12px;color:var(--md-success);margin-top:8px;display:none;">已激活无限额度特权</div>
+    <div id="vipStatusText" style="font-size:12px;color:var(--md-success);margin-top:10px;display:none;font-weight:500;">已激活无限额度特权</div>
   </section>
 </main>
 
-<!-- 右下角悬浮广告 -->
+<!-- 右下角贴边悬浮窗 -->
 <a href="https://qm.qq.com/q/Qa24XBm0w4" target="_blank" class="floating-ad">
   <strong>By VHax代理XTZ</strong>
   <span>无限额度点我获取</span>
@@ -208,10 +310,10 @@ body {
 <!-- 人机验证弹窗 -->
 <div class="modal-overlay" id="turnstileModal">
   <div class="modal-box">
-    <h2 style="margin:0 0 8px 0;color:var(--md-on-surface)">安全验证</h2>
-    <p style="color:var(--md-on-surface-variant);font-size:13px;margin:0 0 16px 0">检测到操作频繁，请完成验证。</p>
+    <h2 style="margin:0 0 8px 0;color:var(--md-on-surface);font-size:20px;">安全验证</h2>
+    <p style="color:var(--md-on-surface-variant);font-size:14px;margin:0 0 20px 0;line-height:1.5;">检测到操作频繁，<br>请完成验证以继续。</p>
     <div id="turnstile-container"></div>
-    <button class="text-button" id="closeModalBtn" style="color:var(--md-on-surface-variant)">取消</button>
+    <button class="text-button" id="closeModalBtn" style="color:var(--md-on-surface-variant);width:100%;padding:12px;">取消</button>
   </div>
 </div>
 
@@ -248,13 +350,13 @@ body {
   function copyText(text) {
     if (!text || text === '—') { toast('暂无内容'); return; }
     if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(text).then(() => toast('已复制'));
+      navigator.clipboard.writeText(text).then(() => toast('已复制到剪贴板'));
     } else {
       const ta = document.createElement('textarea');
       ta.value = text; ta.style.position = 'fixed'; ta.style.top = '-9999px';
       document.body.appendChild(ta); ta.select();
       document.execCommand('copy'); document.body.removeChild(ta);
-      toast('已复制');
+      toast('已复制到剪贴板');
     }
   }
 
@@ -281,7 +383,7 @@ body {
         $('userStatusText').textContent = `您今日已获取 ${data.used} 次`;
         
         if (data.is_vip) {
-          $('redeemCard').style.display = 'none'; // 隐藏兑换框
+          $('redeemCard').style.display = 'none';
           $('userStatusText').textContent += ' (VIP无限额度)';
         }
 
@@ -305,7 +407,6 @@ body {
     }
   }
 
-  // 兑换处理
   $('redeemBtn').addEventListener('click', async () => {
     const cdk = $('cdkInput').value.trim();
     if (!cdk) return toast('请输入兑换码');
@@ -317,7 +418,7 @@ body {
       const data = await res.json();
       if (data.ok) {
         toast(data.msg);
-        loadInfo(); // 刷新状态
+        loadInfo();
       } else {
         toast(data.error);
         $('redeemBtn').disabled = false;
