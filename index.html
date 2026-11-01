@@ -9,8 +9,6 @@
 :root {
   --md-primary: #6750A4; 
   --md-on-primary: #FFFFFF;
-  --md-primary-container: #EADDFF; 
-  --md-on-primary-container: #21005D;
   --md-surface: #FEF7FF; 
   --md-surface-container-lowest: #FFFFFF;
   --md-surface-container-low: #F7F2FA;
@@ -23,12 +21,9 @@
   --md-error: #B3261E;
   --md-success: #386A20;
 }
-
 html[data-theme="dark"] {
   --md-primary: #D0BCFF; 
   --md-on-primary: #381E72;
-  --md-primary-container: #4F378B; 
-  --md-on-primary-container: #EADDFF;
   --md-surface: #141218; 
   --md-surface-container-lowest: #0F0D13;
   --md-surface-container-low: #1D1B20;
@@ -41,28 +36,15 @@ html[data-theme="dark"] {
   --md-error: #F2B8B5;
   --md-success: #B6F09C;
 }
-
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body {
-  margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif;
-  background-color: var(--md-surface); color: var(--md-on-surface);
-  -webkit-font-smoothing: antialiased; transition: background-color 0.3s, color 0.3s;
-  padding-bottom: calc(100px + env(safe-area-inset-bottom)); 
-}
+body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; background-color: var(--md-surface); color: var(--md-on-surface); -webkit-font-smoothing: antialiased; padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
 
 .app-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; height: 64px; padding: 0 16px; background-color: var(--md-surface); }
 .app-bar h1 { margin: 0; font-size: 20px; font-weight: 500; flex: 1; letter-spacing: 0; }
-.icon-button { width: 48px; height: 48px; border: none; border-radius: 50%; background: transparent; color: var(--md-on-surface-variant); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; margin-right: -12px; }
-.icon-button:active { background: var(--md-surface-container-highest); }
+.icon-button { width: 48px; height: 48px; border: none; border-radius: 50%; background: transparent; color: var(--md-on-surface-variant); display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: -12px; }
 
 .container { max-width: 600px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
-
-.card { 
-  background-color: var(--md-surface-container-low); 
-  border-radius: 24px; 
-  padding: 20px; 
-  transition: background 0.3s; 
-}
+.card { background-color: var(--md-surface-container-low); border-radius: 24px; padding: 20px; transition: background 0.3s; }
 .card-title { margin: 0 0 16px 0; font-size: 15px; font-weight: 500; color: var(--md-on-surface); }
 
 .status-layout { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 12px; }
@@ -71,126 +53,65 @@ body {
 .status-divider { width: 1px; height: 40px; background-color: var(--md-outline-variant); opacity: 0.5; }
 .status-hint { text-align: center; color: var(--md-on-surface-variant); font-size: 13px; margin-bottom: 16px; }
 
-.progress-container {
-  height: 4px; width: 100%; background-color: var(--md-surface-container-highest);
-  border-radius: 2px; margin-bottom: 16px; overflow: hidden; display: none;
-}
+.progress-container { height: 4px; width: 100%; background-color: var(--md-surface-container-highest); border-radius: 2px; margin-bottom: 16px; overflow: hidden; display: none; }
 .progress-container.show { display: block; }
-.progress-bar {
-  height: 100%; width: 0%; background-color: var(--md-primary);
-  transition: width 0.3s ease; border-radius: 2px;
-}
+.progress-bar { height: 100%; width: 0%; background-color: var(--md-primary); transition: width 0.3s ease; border-radius: 2px; }
 
-.filled-button { 
-  display: flex; align-items: center; justify-content: center; 
-  width: 100%; height: 52px; 
-  border: none; border-radius: 100px; 
-  background: var(--md-primary); color: var(--md-on-primary); 
-  font-size: 15px; font-weight: 500; cursor: pointer; 
-  transition: transform 0.1s, background 0.2s, opacity 0.2s; 
-}
+.filled-button { display: flex; align-items: center; justify-content: center; width: 100%; height: 52px; border: none; border-radius: 100px; background: var(--md-primary); color: var(--md-on-primary); font-size: 15px; font-weight: 500; cursor: pointer; transition: transform 0.1s, opacity 0.2s; }
 .filled-button:active { transform: scale(0.96); }
 .filled-button:disabled { background: var(--md-surface-container-highest); color: var(--md-on-surface-variant); opacity: 0.6; transform: none; }
 
 .spinner { width: 20px; height: 20px; display: none; margin-right: 10px; }
 .spinner.on { display: block; }
 .spinner svg { animation: rotate 2s linear infinite; width: 100%; height: 100%; }
-.spinner circle {
-  fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round;
-  stroke-dasharray: 1, 200; stroke-dashoffset: 0;
-  animation: dash 1.5s ease-in-out infinite;
-}
+.spinner circle { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 1, 200; stroke-dashoffset: 0; animation: dash 1.5s ease-in-out infinite; }
 @keyframes rotate { 100% { transform: rotate(360deg); } }
-@keyframes dash {
-  0% { stroke-dasharray: 1, 200; stroke-dashoffset: 0; }
-  50% { stroke-dasharray: 90, 200; stroke-dashoffset: -35px; }
-  100% { stroke-dasharray: 90, 200; stroke-dashoffset: -124px; }
-}
+@keyframes dash { 0% { stroke-dasharray: 1, 200; stroke-dashoffset: 0; } 50% { stroke-dasharray: 90, 200; stroke-dashoffset: -35px; } 100% { stroke-dasharray: 90, 200; stroke-dashoffset: -124px; } }
+
+.switch-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 0 8px; font-size: 13px; color: var(--md-on-surface-variant); }
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--md-surface-container-highest); transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: var(--md-outline); transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--md-primary); }
+input:checked + .slider:before { transform: translateX(20px); background-color: var(--md-on-primary); }
 
 .result-list { display: flex; flex-direction: column; gap: 12px; }
-.result-item { 
-  display: flex; flex-direction: column; 
-  padding: 12px 14px; 
-  background: var(--md-surface-container); 
-  border-radius: 16px; 
-  position: relative; 
-}
-.channel-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; }
-.vote-btn { 
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  background: var(--md-surface-container-high); border: none; padding: 8px 16px; 
-  border-radius: 100px; color: var(--md-primary); font-weight: 600; cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
-}
-.vote-btn:active { transform: scale(0.9); background: var(--md-primary-container); }
+.result-item { display: flex; flex-direction: column; padding: 12px 14px; background: var(--md-surface-container); border-radius: 16px; position: relative; }
+
+.channel-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; }
+.channel-info { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--md-primary); }
+.vote-group { display: flex; gap: 4px; }
+.vote-btn { background: transparent; border: none; padding: 6px; border-radius: 50%; color: var(--md-on-surface-variant); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+.vote-btn:active { background: var(--md-surface-container-high); }
 .vote-btn svg { width: 18px; height: 18px; }
 
 .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .result-label { color: var(--md-on-surface-variant); font-size: 11px; margin-bottom: 4px; }
 .result-text { font-family: ui-monospace, monospace; font-size: 14px; color: var(--md-on-surface); word-break: break-all; padding-right: 24px; }
-.text-primary { color: var(--md-primary); font-family: inherit; font-weight: 500; }
-
-.copy-icon-btn { 
-  position: absolute; right: 8px; bottom: 8px; 
-  padding: 6px; border: none; border-radius: 50%; 
-  background: transparent; color: var(--md-primary); 
-  cursor: pointer; display: flex; align-items: center; justify-content: center; 
-  transition: background 0.2s; 
-}
-.copy-icon-btn:active { background: var(--md-surface-container-high); }
+.copy-icon-btn { position: absolute; right: 8px; bottom: 8px; padding: 6px; border: none; border-radius: 50%; background: transparent; color: var(--md-primary); cursor: pointer; }
 .copy-icon-btn svg { width: 16px; height: 16px; }
 
-.cookie-block { 
-  display: flex; flex-direction: column; 
-  background: var(--md-surface-container-high); 
-  border-radius: 16px; 
-  padding: 14px; 
-}
+.cookie-block { display: flex; flex-direction: column; background: var(--md-surface-container-high); border-radius: 16px; padding: 14px; }
 .cookie-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.text-button { 
-  padding: 6px 12px; border: none; border-radius: 100px; 
-  background: transparent; color: var(--md-primary); 
-  font-weight: 500; font-size: 13px; cursor: pointer; 
-}
-.text-button:active { background: rgba(103,80,164,0.1); }
-.cookie-content { 
-  font-family: ui-monospace, monospace; 
-  font-size: 12px; line-height: 1.6; 
-  color: var(--md-on-surface-variant); 
-  word-break: break-all; white-space: pre-wrap; 
-  max-height: 160px; overflow-y: auto; 
-  background: var(--md-surface-container-lowest); 
-  padding: 12px; 
-  border-radius: 12px; 
-}
+.text-button { padding: 6px 12px; border: none; border-radius: 100px; background: transparent; color: var(--md-primary); font-weight: 500; font-size: 13px; cursor: pointer; }
+.cookie-content { font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.6; color: var(--md-on-surface-variant); word-break: break-all; white-space: pre-wrap; max-height: 160px; overflow-y: auto; background: var(--md-surface-container-lowest); padding: 12px; border-radius: 12px; }
 
 .log-box { height: 100px; overflow-y: auto; background: var(--md-surface-container); border-radius: 16px; padding: 12px; font-family: ui-monospace, monospace; font-size: 12px; color: var(--md-on-surface-variant); display: flex; flex-direction: column; gap: 4px; }
 .log-ok { color: var(--md-success); }
 .log-err { color: var(--md-error); }
 
 .redeem-box { display: flex; gap: 8px; }
-.redeem-box input { 
-  flex: 1; padding: 0 14px; height: 48px; 
-  border-radius: 12px; border: 1px solid var(--md-outline-variant); 
-  background: var(--md-surface-container); color: var(--md-on-surface); 
-  font-family: inherit; font-size: 14px; transition: border-color 0.2s; 
-}
-.redeem-box input:focus { outline: none; border-color: var(--md-primary); }
-.redeem-btn { 
-  height: 48px; padding: 0 20px; border-radius: 12px; border: none; 
-  background: var(--md-primary); color: var(--md-on-primary); 
-  font-weight: 500; font-size: 14px; cursor: pointer; 
-}
-.redeem-btn:disabled { opacity: 0.5; }
+.redeem-box input { flex: 1; padding: 0 14px; height: 48px; border-radius: 12px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container); color: var(--md-on-surface); font-family: inherit; font-size: 14px; }
+.redeem-btn { height: 48px; padding: 0 20px; border-radius: 12px; border: none; background: var(--md-primary); color: var(--md-on-primary); font-weight: 500; font-size: 14px; cursor: pointer; }
 
-.floating-ad {
-  position: fixed; right: 0; bottom: 0; margin-bottom: env(safe-area-inset-bottom); z-index: 100;
-  background: linear-gradient(135deg, #6750A4, #8E7CC3);
-  color: #FFF; text-decoration: none; padding: 12px 16px;
-  border-radius: 16px 0 0 0; box-shadow: -2px 0px 12px rgba(103, 80, 164, 0.3);
-  display: flex; flex-direction: column; align-items: flex-start; transition: transform 0.2s;
-}
-.floating-ad:active { transform: scale(0.95); }
+.history-search { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container); color: var(--md-on-surface); margin-bottom: 12px; font-size: 13px; }
+.history-list { display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; }
+.history-item { background: var(--md-surface-container); padding: 10px; border-radius: 12px; font-size: 12px; position: relative; }
+.history-time { color: var(--md-on-surface-variant); font-size: 11px; margin-bottom: 4px; }
+.history-data { font-family: ui-monospace, monospace; word-break: break-all; color: var(--md-on-surface); }
+
+.floating-ad { position: fixed; right: 0; bottom: 0; margin-bottom: env(safe-area-inset-bottom); z-index: 100; background: linear-gradient(135deg, #6750A4, #8E7CC3); color: #FFF; text-decoration: none; padding: 12px 16px; border-radius: 16px 0 0 0; box-shadow: -2px 0px 12px rgba(103, 80, 164, 0.3); display: flex; flex-direction: column; align-items: flex-start; transition: transform 0.2s; }
 .floating-ad strong { font-size: 13px; font-weight: 600; }
 .floating-ad span { color: #EADDFF; font-size: 11px; margin-top: 2px; }
 
@@ -214,7 +135,7 @@ body {
 </header>
 
 <main class="container">
-  <section class="card">
+  <section class="card" id="mainActionCard">
     <div class="status-layout">
       <div class="status-item">
         <div class="result-label">剩余额度</div>
@@ -228,6 +149,14 @@ body {
     </div>
     <div class="status-hint" id="userStatusText">正在安全连接…</div>
 
+    <div class="switch-row" id="randomSwitchRow">
+      <span>忽略推荐，完全随机分配</span>
+      <label class="switch">
+        <input type="checkbox" id="ignoreVotes">
+        <span class="slider"></span>
+      </label>
+    </div>
+
     <div class="progress-container" id="progressWrap">
       <div class="progress-bar" id="progressBar"></div>
     </div>
@@ -240,38 +169,47 @@ body {
     </button>
   </section>
 
+  <section class="card" id="manualConvertCard">
+    <h2 class="card-title">手动转换</h2>
+    <div class="grid-row" style="margin-bottom: 12px;">
+      <div class="result-item" style="padding: 8px 12px;">
+        <div class="result-label">账号</div>
+        <input type="text" id="manUser" style="border:none; background:transparent; color:var(--md-on-surface); font-family:ui-monospace, monospace; font-size:14px; outline:none; width:100%;">
+      </div>
+      <div class="result-item" style="padding: 8px 12px;">
+        <div class="result-label">密码</div>
+        <input type="text" id="manPass" style="border:none; background:transparent; color:var(--md-on-surface); font-family:ui-monospace, monospace; font-size:14px; outline:none; width:100%;">
+      </div>
+    </div>
+    <button class="filled-button" id="manConvertBtn" style="height: 44px; font-size: 14px;">转为 Cookie</button>
+  </section>
+
   <section class="card">
     <h2 class="card-title">提取结果</h2>
     <div class="result-list">
-      
       <div class="result-item channel-row">
-        <div class="info">
-          <div class="result-label">来源通道</div>
-          <div class="result-text text-primary" id="outChannel">—</div>
+        <div class="channel-info" id="outChannel">来源通道 —</div>
+        <div class="vote-group" id="voteGroup" style="display:none;">
+          <button class="vote-btn" onclick="vote('up')" title="推荐">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+          </button>
+          <button class="vote-btn" onclick="vote('down')" title="不推荐">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
+          </button>
         </div>
-        <button class="vote-btn" id="voteBtn" style="display:none;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-          推荐
-        </button>
       </div>
-
       <div class="grid-row">
         <div class="result-item">
           <div class="result-label">账号</div>
           <div class="result-text" id="outUser">—</div>
-          <button class="copy-icon-btn" data-copy="outUser">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-          </button>
+          <button class="copy-icon-btn" data-copy="outUser"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
         </div>
         <div class="result-item">
           <div class="result-label">密码</div>
           <div class="result-text" id="outPass">—</div>
-          <button class="copy-icon-btn" data-copy="outPass">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-          </button>
+          <button class="copy-icon-btn" data-copy="outPass"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
         </div>
       </div>
-
       <div class="cookie-block">
         <div class="cookie-header">
           <div class="result-label" style="margin:0;font-weight:500;font-size:13px;color:var(--md-on-surface)">Cookie 数据</div>
@@ -279,13 +217,18 @@ body {
         </div>
         <div class="cookie-content" id="outCookie">—</div>
       </div>
-
     </div>
   </section>
 
   <section class="card">
     <h2 class="card-title">运行日志</h2>
     <div class="log-box" id="log"></div>
+  </section>
+
+  <section class="card" id="historyCard">
+    <h2 class="card-title">历史记录</h2>
+    <input type="text" class="history-search" id="historySearch" placeholder="搜索账号或 Cookie 关键字...">
+    <div class="history-list" id="historyList"></div>
   </section>
 
   <section class="card" id="redeemCard">
@@ -322,7 +265,7 @@ body {
   const snackbar = $('snackbar');
   
   let snackTimer, busy = false, userFp = '', isVipMode = false;
-  let currentChannelId = 0;
+  let currentChannelId = 0, currentChannelKey = '';
 
   function toast(msg) {
     snackbar.textContent = msg;
@@ -370,6 +313,43 @@ body {
     $('log').scrollTop = $('log').scrollHeight;
   }
 
+  function addHistory(username, password, cookies, channel) {
+    let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
+    history.unshift({
+      time: new Date().toLocaleString('zh-CN', { hour12: false }),
+      username, password, cookies, channel
+    });
+    if (history.length > 50) history.pop();
+    localStorage.setItem('cookies_history', JSON.stringify(history));
+    renderHistory();
+  }
+
+  function renderHistory(keyword = '') {
+    let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
+    if (keyword) {
+      keyword = keyword.toLowerCase();
+      history = history.filter(h => 
+        (h.username && h.username.toLowerCase().includes(keyword)) ||
+        (h.cookies && h.cookies.toLowerCase().includes(keyword))
+      );
+    }
+    if (history.length === 0) {
+      $('historyList').innerHTML = '<div style="font-size:12px;color:var(--md-on-surface-variant);text-align:center;padding:12px;">暂无匹配记录</div>';
+      return;
+    }
+    $('historyList').innerHTML = history.map(h => `
+      <div class="history-item">
+        <div class="history-time">${h.time} | 通道 ${h.channel}</div>
+        <div class="history-data">账号: ${h.username}</div>
+        <div class="history-data" style="margin-top:4px; color:var(--md-on-surface-variant); cursor:pointer;" onclick="copyText('${h.cookies.replace(/'/g, "\\'")}')">Cookie: ${h.cookies.substring(0, 30)}... (点击复制)</div>
+      </div>
+    `).join('');
+  }
+
+  $('historySearch').addEventListener('input', (e) => {
+    renderHistory(e.target.value);
+  });
+
   async function loadInfo() {
     try {
       const res = await fetch(`${WORKER_URL}/info?fp=${userFp}`, { cache: 'no-store' });
@@ -416,15 +396,15 @@ body {
     }
   }
 
-  $('voteBtn').addEventListener('click', async () => {
+  async function vote(action) {
     if (!currentChannelId) return;
-    $('voteBtn').style.pointerEvents = 'none';
-    $('voteBtn').innerHTML = '已推荐';
+    $('voteGroup').style.pointerEvents = 'none';
     try {
-      await fetch(`${WORKER_URL}/vote?channel=${currentChannelId}`);
-      toast('推荐成功，感谢反馈');
+      await fetch(`${WORKER_URL}/vote?channel=${currentChannelId}&action=${action}`);
+      toast(action === 'up' ? '已推荐该通道' : '已不推荐该通道');
     } catch(e) {}
-  });
+  }
+  window.vote = vote;
 
   $('redeemBtn').addEventListener('click', async () => {
     const cdk = $('cdkInput').value.trim();
@@ -491,9 +471,9 @@ body {
     $('progressBar').style.width = '0%';
     let p = 0;
     progressInterval = setInterval(() => {
-      if (p < 30) p += 5;
-      else if (p < 60) p += 2;
-      else if (p < 90) p += 0.5;
+      if (p < 30) p += 10;
+      else if (p < 60) p += 5;
+      else if (p < 90) p += 1;
       $('progressBar').style.width = p + '%';
     }, 200);
   }
@@ -504,125 +484,132 @@ body {
     setTimeout(() => { $('progressWrap').classList.remove('show'); }, 300);
   }
 
-  async function doFetchWithRetry(token = '', maxRetries = 5) {
+  async function doFetch(token = '') {
     if (busy) return;
     busy = true;
     $('getBtn').disabled = true;
     $('spinner').classList.add('on');
-    $('voteBtn').style.display = 'none';
+    $('btnText').textContent = '获取账号中…';
+    $('voteGroup').style.display = 'none';
     
-    $('outChannel').textContent = '—';
+    $('outChannel').textContent = '来源通道 —';
     $('outUser').textContent = '—';
     $('outPass').textContent = '—';
     $('outCookie').textContent = '—';
     
     startProgress();
 
-    let attempt = 0;
-    let success = false;
+    try {
+      const ignoreVotes = $('ignoreVotes').checked;
+      const claimUrl = `${WORKER_URL}/claim?fp=${userFp}&ignore_votes=${ignoreVotes}` + (token ? `&turnstile_token=${token}` : '');
+      const claimRes = await fetch(claimUrl, { cache: 'no-store' });
+      const claimData = await claimRes.json();
 
-    while (attempt < maxRetries && !success) {
-      attempt++;
-      $('btnText').textContent = attempt === 1 ? '获取中…' : `重试中 (${attempt-1}/5)`;
-      if (attempt > 1) log(`尝试重新请求… (${attempt-1}/5)`, 'dim');
-      else log('正在请求服务器…');
-
-      try {
-        const url = `${WORKER_URL}/run?fp=${userFp}` + (token ? `&turnstile_token=${token}` : '');
-        const res = await fetch(url, { cache: 'no-store' });
-        const data = await res.json();
-        
-        if (!data.ok) {
-          if (data.need_turnstile) {
-            stopProgress();
-            log('触发风控限制，需要验证', 'err');
-            $('spinner').classList.remove('on');
-            $('btnText').textContent = '请完成验证';
-            
-            const newToken = await showTurnstile();
-            busy = false;
-            if (newToken) { doFetchWithRetry(newToken, 5); }
-            else { $('getBtn').disabled = false; $('btnText').textContent = '获取'; }
-            return;
-          }
-
-          if (data.error && data.error.includes('网络错误')) {
-            throw new Error(data.error);
-          }
-
-          if (data.error && (data.error.includes('额度') || data.error.includes('封禁') || data.error.includes('无可用通道'))) {
-            stopProgress();
-            log(`失败: ${data.error}`, 'err');
-            toast(data.error);
-            busy = false;
-            $('spinner').classList.remove('on');
-            if (data.error.includes('额度')) {
-              $('userQuota').textContent = '0'; $('userQuota').style.color = 'var(--md-error)'; $('btnText').textContent = '额度已用完';
-            } else {
-              $('getBtn').disabled = false; $('btnText').textContent = '获取';
-            }
-            return;
-          }
-
-          throw new Error(data.error || '服务器返回异常');
-        }
-
-        success = true;
-        stopProgress();
-        currentChannelId = data.channel;
-        $('outChannel').textContent = `通道 ${data.channel}`;
-        $('voteBtn').style.display = 'flex';
-        $('voteBtn').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg> 推荐`;
-        $('voteBtn').style.pointerEvents = 'auto';
-
-        $('outUser').textContent = data.username;
-        $('outPass').textContent = data.password;
-        $('outCookie').textContent = data.cookies || '解析失败';
-        
-        if (isVipMode) {
-          $('userQuota').textContent = '∞';
-          log(`获取成功！(无限额度)`, 'ok');
-        } else {
-          $('userQuota').textContent = data.remaining;
-          if (data.remaining === 0) {
-            $('userQuota').style.color = 'var(--md-error)'; $('btnText').textContent = '额度已用完';
-          }
-          log(`获取成功！剩余 ${data.remaining} 次`, 'ok');
-        }
-        
-        loadInfo(); 
-        toast('获取成功');
-      } catch (e) {
-        if (attempt >= maxRetries) {
+      if (!claimData.ok) {
+        if (claimData.need_turnstile) {
           stopProgress();
-          log(`网络异常: 重试${maxRetries}次后仍失败`, 'err');
-          toast('网络错误，请稍后再试');
-          $('getBtn').disabled = false; 
-          $('btnText').textContent = '获取';
-        } else {
-          await new Promise(r => setTimeout(r, 800));
+          log('触发风控限制，需要验证', 'err');
+          $('spinner').classList.remove('on');
+          $('btnText').textContent = '请完成验证';
+          
+          const newToken = await showTurnstile();
+          busy = false;
+          if (newToken) { doFetch(newToken); }
+          else { $('getBtn').disabled = false; $('btnText').textContent = '获取'; }
+          return;
         }
+        throw new Error(claimData.error || '获取账号失败');
+      }
+
+      const { channel, channel_key, username, password, remaining } = claimData;
+      currentChannelId = channel;
+      currentChannelKey = channel_key;
+
+      $('outChannel').textContent = `来源通道 ${channel}`;
+      $('outUser').textContent = username;
+      $('outPass').textContent = password;
+      $('voteGroup').style.display = 'flex';
+      $('voteGroup').style.pointerEvents = 'auto';
+
+      if (isVipMode) {
+        $('userQuota').textContent = '∞';
+        log(`账号获取成功！(无限额度)`, 'ok');
+      } else {
+        $('userQuota').textContent = remaining;
+        log(`账号获取成功！剩余 ${remaining} 次`, 'ok');
+      }
+      
+      loadInfo();
+      $('btnText').textContent = '转换 Cookie 中…';
+
+      const convUrl = `${WORKER_URL}/convert?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&key=${channel_key}`;
+      const convRes = await fetch(convUrl, { cache: 'no-store' });
+      const convData = await convRes.json();
+
+      if (!convData.ok) {
+        throw new Error('Cookie 转换失败，请手动重试');
+      }
+
+      const cookies = convData.cookies;
+      $('outCookie').textContent = cookies;
+      stopProgress();
+      log(`Cookie 转换成功`, 'ok');
+      toast('获取成功');
+
+      addHistory(username, password, cookies, channel);
+
+    } catch (e) {
+      stopProgress();
+      log(`失败: ${e.message}`, 'err');
+      toast(e.message);
+    } finally {
+      busy = false;
+      $('spinner').classList.remove('on');
+      if ($('btnText').textContent !== '已封禁' && $('btnText').textContent !== '额度已用完') {
+        $('getBtn').disabled = false;
+        $('btnText').textContent = '获取';
       }
     }
+  }
 
-    busy = false;
-    $('spinner').classList.remove('on');
-    if ($('btnText').textContent.includes('重试中')) {
-      $('getBtn').disabled = false;
-      $('btnText').textContent = '获取';
+  async function manualConvert() {
+    const u = $('manUser').value.trim();
+    const p = $('manPass').value.trim();
+    if (!u || !p) return toast('请输入账号和密码');
+    
+    $('manConvertBtn').disabled = true;
+    $('manConvertBtn').textContent = '转换中…';
+    
+    try {
+      const convUrl = `${WORKER_URL}/convert?username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&key=default`;
+      const convRes = await fetch(convUrl, { cache: 'no-store' });
+      const convData = await convRes.json();
+      
+      if (convData.ok && convData.cookies) {
+        $('outChannel').textContent = '来源通道 手动';
+        $('outUser').textContent = u;
+        $('outPass').textContent = p;
+        $('outCookie').textContent = convData.cookies;
+        $('voteGroup').style.display = 'none';
+        toast('转换成功');
+        addHistory(u, p, convData.cookies, '手动');
+      } else {
+        toast(convData.error || '转换失败');
+      }
+    } catch(e) {
+      toast('网络请求失败');
+    } finally {
+      $('manConvertBtn').disabled = false;
+      $('manConvertBtn').textContent = '转为 Cookie';
     }
   }
+
+  $('manConvertBtn').addEventListener('click', manualConvert);
 
   (async function init() {
     try {
       userFp = await generateFingerprint();
-    } catch(e) {
-      userFp = 'FP_FALLBACK_' + Date.now();
-    }
-    
-    $('userQuota').textContent = '-';
-    $('totalUsers').textContent = '-';
-    $('userStatusText').textContent = '正在安全连接…';
+    } catch(e) { userFp = 'FP_FALLBACK_' + Date.now(); }
     
     await loadInfo(); 
     
@@ -632,7 +619,8 @@ body {
       $('userStatusText').textContent = '就绪';
     }
 
-    $('getBtn').addEventListener('click', () => doFetchWithRetry());
+    $('getBtn').addEventListener('click', () => doFetch());
+    renderHistory();
   })();
 
   const mq = window.matchMedia('(prefers-color-scheme: dark)');
