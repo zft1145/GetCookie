@@ -68,14 +68,6 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; 
 @keyframes rotate { 100% { transform: rotate(360deg); } }
 @keyframes dash { 0% { stroke-dasharray: 1, 200; stroke-dashoffset: 0; } 50% { stroke-dasharray: 90, 200; stroke-dashoffset: -35px; } 100% { stroke-dasharray: 90, 200; stroke-dashoffset: -124px; } }
 
-.switch-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 0 8px; font-size: 13px; color: var(--md-on-surface-variant); }
-.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--md-surface-container-highest); transition: .4s; border-radius: 34px; }
-.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: var(--md-outline); transition: .4s; border-radius: 50%; }
-input:checked + .slider { background-color: var(--md-primary); }
-input:checked + .slider:before { transform: translateX(20px); background-color: var(--md-on-primary); }
-
 .result-list { display: flex; flex-direction: column; gap: 12px; }
 .result-item { display: flex; flex-direction: column; padding: 12px 14px; background: var(--md-surface-container); border-radius: 16px; position: relative; }
 
@@ -106,25 +98,42 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
 .redeem-btn { height: 48px; padding: 0 20px; border-radius: 12px; border: none; background: var(--md-primary); color: var(--md-on-primary); font-weight: 500; font-size: 14px; cursor: pointer; }
 
 .history-search { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container); color: var(--md-on-surface); margin-bottom: 12px; font-size: 13px; }
-.history-list { display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; }
-.history-item { background: var(--md-surface-container); padding: 10px; border-radius: 12px; font-size: 12px; position: relative; }
-.history-time { color: var(--md-on-surface-variant); font-size: 11px; margin-bottom: 4px; }
-.history-data { font-family: ui-monospace, monospace; word-break: break-all; color: var(--md-on-surface); }
+.history-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+.history-item { background: var(--md-surface-container); padding: 12px; border-radius: 12px; font-size: 12px; position: relative; }
+.history-time { color: var(--md-on-surface-variant); font-size: 11px; margin-bottom: 4px; display: flex; justify-content: space-between; }
+.history-data { font-family: ui-monospace, monospace; word-break: break-all; color: var(--md-on-surface); margin-bottom: 4px; }
+.history-btn { background: var(--md-primary); color: var(--md-on-primary); border: none; padding: 4px 10px; border-radius: 100px; font-size: 11px; cursor: pointer; margin-top: 4px; float: right; }
 
-.floating-ad { position: fixed; right: 0; bottom: 0; margin-bottom: env(safe-area-inset-bottom); z-index: 100; background: linear-gradient(135deg, #6750A4, #8E7CC3); color: #FFF; text-decoration: none; padding: 12px 16px; border-radius: 16px 0 0 0; box-shadow: -2px 0px 12px rgba(103, 80, 164, 0.3); display: flex; flex-direction: column; align-items: flex-start; transition: transform 0.2s; }
-.floating-ad strong { font-size: 13px; font-weight: 600; }
-.floating-ad span { color: #EADDFF; font-size: 11px; margin-top: 2px; }
+.watermark {
+  position: fixed; top: 12px; right: 60px; z-index: 10;
+  background: rgba(103, 80, 164, 0.15);
+  color: var(--md-primary);
+  padding: 4px 10px; border-radius: 100px;
+  font-size: 11px; font-weight: 500; text-decoration: none;
+  opacity: 0.6; transition: opacity 0.2s;
+}
+.watermark:active { opacity: 1; }
 
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
 .modal-overlay.show { opacity: 1; pointer-events: auto; }
-.modal-box { background: var(--md-surface-container-high); border-radius: 28px; padding: 24px; width: 90%; max-width: 320px; text-align: center; transform: scale(0.9); transition: transform 0.3s; }
+.modal-box { background: var(--md-surface-container-high); border-radius: 28px; padding: 24px; width: 90%; max-width: 320px; transform: scale(0.9); transition: transform 0.3s; }
 .modal-overlay.show .modal-box { transform: scale(1); }
-#turnstile-container { display: flex; justify-content: center; margin: 16px 0; min-height: 65px; }
+.modal-title { margin: 0 0 16px 0; font-size: 18px; font-weight: 500; }
+.switch-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 14px; }
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--md-outline-variant); transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: var(--md-surface); transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--md-primary); }
+input:checked + .slider:before { transform: translateX(20px); background-color: var(--md-on-primary); }
+
 .snackbar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--md-surface-container-highest); color: var(--md-on-surface); padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 14px; opacity: 0; pointer-events: none; transition: transform 0.3s, opacity 0.3s; z-index: 1000; }
 .snackbar.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 </style>
 </head>
 <body>
+
+<a href="https://qm.qq.com/q/Qa24XBm0w4" target="_blank" class="watermark" id="floatingAd">By VHax</a>
 
 <header class="app-bar">
   <h1>4399 账号与 Cookies</h1>
@@ -132,10 +141,13 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
     <svg id="iconSun" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
     <svg id="iconMoon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" style="display:none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
   </button>
+  <button class="icon-button" id="settingsBtn" style="margin-right:0;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+  </button>
 </header>
 
 <main class="container">
-  <section class="card" id="mainActionCard">
+  <section class="card">
     <div class="status-layout">
       <div class="status-item">
         <div class="result-label">剩余额度</div>
@@ -148,40 +160,15 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
       </div>
     </div>
     <div class="status-hint" id="userStatusText">正在安全连接…</div>
-
-    <div class="switch-row" id="randomSwitchRow">
-      <span>忽略推荐，完全随机分配</span>
-      <label class="switch">
-        <input type="checkbox" id="ignoreVotes">
-        <span class="slider"></span>
-      </label>
-    </div>
-
     <div class="progress-container" id="progressWrap">
       <div class="progress-bar" id="progressBar"></div>
     </div>
-
     <button class="filled-button" id="getBtn" disabled>
       <div class="spinner" id="spinner">
         <svg viewBox="25 25 50 50"><circle cx="50" cy="50" r="20"></circle></svg>
       </div>
       <span id="btnText">正在初始化</span>
     </button>
-  </section>
-
-  <section class="card" id="manualConvertCard">
-    <h2 class="card-title">手动转换</h2>
-    <div class="grid-row" style="margin-bottom: 12px;">
-      <div class="result-item" style="padding: 8px 12px;">
-        <div class="result-label">账号</div>
-        <input type="text" id="manUser" style="border:none; background:transparent; color:var(--md-on-surface); font-family:ui-monospace, monospace; font-size:14px; outline:none; width:100%;">
-      </div>
-      <div class="result-item" style="padding: 8px 12px;">
-        <div class="result-label">密码</div>
-        <input type="text" id="manPass" style="border:none; background:transparent; color:var(--md-on-surface); font-family:ui-monospace, monospace; font-size:14px; outline:none; width:100%;">
-      </div>
-    </div>
-    <button class="filled-button" id="manConvertBtn" style="height: 44px; font-size: 14px;">转为 Cookie</button>
   </section>
 
   <section class="card">
@@ -240,17 +227,26 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   </section>
 </main>
 
-<a href="https://qm.qq.com/q/Qa24XBm0w4" target="_blank" class="floating-ad" id="floatingAd">
-  <strong>By VHax代理XTZ</strong>
-  <span>无限额度点我获取</span>
-</a>
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-box">
+    <h2 class="modal-title">设置</h2>
+    <div class="switch-row">
+      <span>忽略推荐，完全随机分配通道</span>
+      <label class="switch">
+        <input type="checkbox" id="ignoreVotesSetting">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <button class="text-button" id="closeSettingsBtn" style="width:100%; padding:12px; background:var(--md-surface-container-highest); border-radius:12px;">确定</button>
+  </div>
+</div>
 
 <div class="modal-overlay" id="turnstileModal">
   <div class="modal-box">
-    <h2 style="margin:0 0 8px 0;color:var(--md-on-surface);font-size:18px;">安全验证</h2>
-    <p style="color:var(--md-on-surface-variant);font-size:13px;margin:0 0 16px 0;">检测到操作频繁，请完成验证。</p>
-    <div id="turnstile-container"></div>
-    <button class="text-button" id="closeModalBtn" style="color:var(--md-on-surface-variant);width:100%;">取消</button>
+    <h2 class="modal-title">安全验证</h2>
+    <p style="color:var(--md-on-surface-variant);font-size:13px;margin:0 0 16px 0;text-align:center;">检测到操作频繁，请完成验证。</p>
+    <div id="turnstile-container" style="display:flex;justify-content:center;margin:16px 0;"></div>
+    <button class="text-button" id="closeModalBtn" style="color:var(--md-on-surface-variant);width:100%;text-align:center;">取消</button>
   </div>
 </div>
 
@@ -265,7 +261,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   const snackbar = $('snackbar');
   
   let snackTimer, busy = false, userFp = '', isVipMode = false;
-  let currentChannelId = 0, currentChannelKey = '';
+  let currentChannelId = 0;
 
   function toast(msg) {
     snackbar.textContent = msg;
@@ -299,6 +295,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
       toast('已复制');
     }
   }
+  window.copyText = copyText;
 
   document.addEventListener('click', e => {
     const btn = e.target.closest('[data-copy]');
@@ -313,11 +310,11 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
     $('log').scrollTop = $('log').scrollHeight;
   }
 
-  function addHistory(username, password, cookies, channel) {
+  function addHistory(username, password, cookies, channel, channelKey) {
     let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
     history.unshift({
       time: new Date().toLocaleString('zh-CN', { hour12: false }),
-      username, password, cookies, channel
+      username, password, cookies, channel, channelKey
     });
     if (history.length > 50) history.pop();
     localStorage.setItem('cookies_history', JSON.stringify(history));
@@ -337,18 +334,41 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
       $('historyList').innerHTML = '<div style="font-size:12px;color:var(--md-on-surface-variant);text-align:center;padding:12px;">暂无匹配记录</div>';
       return;
     }
-    $('historyList').innerHTML = history.map(h => `
+    $('historyList').innerHTML = history.map((h, i) => `
       <div class="history-item">
-        <div class="history-time">${h.time} | 通道 ${h.channel}</div>
+        <div class="history-time"><span>${h.time} | 通道 ${h.channel}</span></div>
         <div class="history-data">账号: ${h.username}</div>
-        <div class="history-data" style="margin-top:4px; color:var(--md-on-surface-variant); cursor:pointer;" onclick="copyText('${h.cookies.replace(/'/g, "\\'")}')">Cookie: ${h.cookies.substring(0, 30)}... (点击复制)</div>
+        <div class="history-data" style="color:var(--md-on-surface-variant);">Cookie: ${h.cookies ? h.cookies.substring(0, 20) + '...' : '空'}</div>
+        <button class="history-btn" onclick="convertHistory('${h.username}', '${h.password}', '${h.channelKey}')">转为 Cookie</button>
+        <div style="clear:both;"></div>
       </div>
     `).join('');
   }
 
-  $('historySearch').addEventListener('input', (e) => {
-    renderHistory(e.target.value);
-  });
+  window.convertHistory = async (username, password, channelKey) => {
+    toast('正在转换...');
+    try {
+      const convUrl = `${WORKER_URL}/convert?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&key=${channelKey || 'default'}`;
+      const convRes = await fetch(convUrl, { cache: 'no-store' });
+      const convData = await convRes.json();
+      
+      if (convData.ok && convData.cookies) {
+        $('outChannel').textContent = '来源通道 历史记录';
+        $('outUser').textContent = username;
+        $('outPass').textContent = password;
+        $('outCookie').textContent = convData.cookies;
+        $('voteGroup').style.display = 'none';
+        toast('转换成功');
+        addHistory(username, password, convData.cookies, '历史', channelKey);
+      } else {
+        toast(convData.error || '转换失败');
+      }
+    } catch(e) {
+      toast('网络请求失败');
+    }
+  };
+
+  $('historySearch').addEventListener('input', (e) => renderHistory(e.target.value));
 
   async function loadInfo() {
     try {
@@ -365,7 +385,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
           $('userQuota').style.color = 'var(--md-primary)';
           $('userStatusText').textContent = `您今日已获取 ${data.used} 次 (无限额度)`;
           $('redeemCard').style.display = 'none';
-          $('floatingAd').style.display = 'none';
+          $('floatingAd').style.opacity = '0'; // VIP隐藏水印
           $('getBtn').disabled = false; $('btnText').textContent = '获取';
         } else {
           isVipMode = false;
@@ -500,7 +520,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
     startProgress();
 
     try {
-      const ignoreVotes = $('ignoreVotes').checked;
+      const ignoreVotes = $('ignoreVotesSetting').checked;
       const claimUrl = `${WORKER_URL}/claim?fp=${userFp}&ignore_votes=${ignoreVotes}` + (token ? `&turnstile_token=${token}` : '');
       const claimRes = await fetch(claimUrl, { cache: 'no-store' });
       const claimData = await claimRes.json();
@@ -523,7 +543,6 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
 
       const { channel, channel_key, username, password, remaining } = claimData;
       currentChannelId = channel;
-      currentChannelKey = channel_key;
 
       $('outChannel').textContent = `来源通道 ${channel}`;
       $('outUser').textContent = username;
@@ -547,7 +566,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
       const convData = await convRes.json();
 
       if (!convData.ok) {
-        throw new Error('Cookie 转换失败，请手动重试');
+        throw new Error('Cookie 转换失败，请使用历史记录重试');
       }
 
       const cookies = convData.cookies;
@@ -556,7 +575,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
       log(`Cookie 转换成功`, 'ok');
       toast('获取成功');
 
-      addHistory(username, password, cookies, channel);
+      addHistory(username, password, cookies, channel, channel_key);
 
     } catch (e) {
       stopProgress();
@@ -572,41 +591,17 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
     }
   }
 
-  async function manualConvert() {
-    const u = $('manUser').value.trim();
-    const p = $('manPass').value.trim();
-    if (!u || !p) return toast('请输入账号和密码');
-    
-    $('manConvertBtn').disabled = true;
-    $('manConvertBtn').textContent = '转换中…';
-    
-    try {
-      const convUrl = `${WORKER_URL}/convert?username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}&key=default`;
-      const convRes = await fetch(convUrl, { cache: 'no-store' });
-      const convData = await convRes.json();
-      
-      if (convData.ok && convData.cookies) {
-        $('outChannel').textContent = '来源通道 手动';
-        $('outUser').textContent = u;
-        $('outPass').textContent = p;
-        $('outCookie').textContent = convData.cookies;
-        $('voteGroup').style.display = 'none';
-        toast('转换成功');
-        addHistory(u, p, convData.cookies, '手动');
-      } else {
-        toast(convData.error || '转换失败');
-      }
-    } catch(e) {
-      toast('网络请求失败');
-    } finally {
-      $('manConvertBtn').disabled = false;
-      $('manConvertBtn').textContent = '转为 Cookie';
-    }
-  }
-
-  $('manConvertBtn').addEventListener('click', manualConvert);
+  $('settingsBtn').addEventListener('click', () => $('settingsModal').classList.add('show'));
+  $('closeSettingsBtn').addEventListener('click', () => {
+    $('settingsModal').classList.remove('show');
+    localStorage.setItem('ignore_votes', $('ignoreVotesSetting').checked);
+  });
 
   (async function init() {
+    if (localStorage.getItem('ignore_votes') === 'true') {
+      $('ignoreVotesSetting').checked = true;
+    }
+
     try {
       userFp = await generateFingerprint();
     } catch(e) { userFp = 'FP_FALLBACK_' + Date.now(); }
