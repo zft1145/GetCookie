@@ -61,12 +61,6 @@ function pickCookies(obj) {
   return JSON.stringify(obj);
 }
 
-async function doClaim(key) {
-  const u = new URL(API + "/claim_by_key");
-  u.searchParams.set("key", key);
-  return fetchJson(u.toString());
-}
-
 async function doConvertWithRetry(key, username, password) {
   const delays = [0, 300, 600];
   let last;
@@ -105,12 +99,16 @@ function getRandomChannel(channels, ignoreVotes) {
   if (ignoreVotes || active.length === 1) {
     return active[Math.floor(Math.random() * active.length)];
   }
-  const totalWeight = active.reduce((sum, c) => sum + 1 + (c.votes || 0), 0);
+  const weighted = active.map(c => {
+    let w = 1 + (c.votes || 0);
+    if (w < 0.1) w = 0.1;
+    return { c, w };
+  });
+  const totalWeight = weighted.reduce((sum, item) => sum + item.w, 0);
   let random = Math.random() * totalWeight;
-  for (const c of active) {
-    const weight = 1 + (c.votes || 0);
-    if (random < weight) return c;
-    random -= weight;
+  for (const item of weighted) {
+    if (random < item.w) return item.c;
+    random -= item.w;
   }
   return active[0];
 }
@@ -134,7 +132,7 @@ export default {
         if (!adminKey) {
           adminKey = "XJ9k-mP4q-W2nV";
           await kv.put("admin_key", adminKey);
-          await kv.put("config", JSON.stringify({ turnstile_site_key: "", turnstile_secret: "", cdk: "VHaxAgentXTZCookieWebsite", ignore_votes: false }));
+          await kv.put("config", JSON.stringify({ turnstile_site_key: "", turnstile_secret: "", cdk: "VHaxAgentXTZCookieWebsite" }));
           const defaultChannels = [
             { id: 1, name: "通道 1", key: obfuscate("aku_9747f851a78b44dfbc337368edd45b8e61676e33"), active: true, votes: 0 }
           ];
@@ -158,7 +156,6 @@ export default {
 
         if (request.method === "POST") {
           const body = await request.json();
-          
           if (body.action === "toggle_channel") {
             let channels = JSON.parse(await kv.get("channels") || "[]");
             channels = channels.map(c => c.id === body.id ? { ...c, active: body.active } : c);
@@ -192,12 +189,14 @@ export default {
 
       if (path === "/vote") {
         const channelId = parseInt(url.searchParams.get("channel"), 10);
-        if (!channelId) return json({ ok: false, error: "参数错误" }, 400, origin);
+        const action = url.searchParams.get("action");
+        if (!channelId || !action) return json({ ok: false, error: "参数错误" }, 400, origin);
         
         let channels = JSON.parse(await kv.get("channels") || "[]");
         channels = channels.map(c => {
            if (c.id === channelId) {
-              c.votes = (c.votes || 0) + 1;
+              if (action === 'up') c.votes = (c.votes || 0) + 1;
+              if (action === 'down') c.votes = (c.votes || 0) - 1;
            }
            return c;
         });
@@ -214,7 +213,6 @@ export default {
           kv.get("config"),
           kv.get("users")
         ]);
-        
         let config = JSON.parse(configStr || "{}");
         if (cdkInput.trim() !== config.cdk) {
           return json({ ok: false, error: "兑换码无效" }, 400, origin);
@@ -225,26 +223,19 @@ export default {
         user.vip = true; 
         users[fingerprint] = user;
         await kv.put("users", JSON.stringify(users));
-
         return json({ ok: true, msg: "兑换成功！已解锁无限额度" }, 200, origin);
       }
 
       if (path === "/info") {
         const fingerprint = url.searchParams.get("fp");
         if (!fingerprint) return json({ ok: false, error: "缺少设备指纹" }, 400, origin);
-        
-        const [usersStr, configStr] = await Promise.all([
-          kv.get("users"),
-          kv.get("config")
-        ]);
-        
+        const [usersStr, configStr] = await Promise.all([kv.get("users"), kv.get("config")]);
         let users = JSON.parse(usersStr || "{}");
         let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", vip: false };
         if (user.date !== getTodayStr()) user.count = 0;
 
         let config = JSON.parse(configStr || "{}");
         const limit = user.vip ? DAILY_LIMIT_VIP : DAILY_LIMIT_NORMAL;
-
         return json({
           ok: true,
           remaining: Math.max(0, limit - user.count),
@@ -256,16 +247,12 @@ export default {
         }, 200, origin);
       }
 
-      if (path === "/run") {
+      if (path === "/claim") {
         const fingerprint = url.searchParams.get("fp");
+        const ignoreVotes = url.searchParams.get("ignore_votes") === "true";
         if (!fingerprint) return json({ ok: false, error: "缺少设备指纹" }, 400, origin);
 
-        const [usersStr, channelsStr, configStr] = await Promise.all([
-          kv.get("users"),
-          kv.get("channels"),
-          kv.get("config")
-        ]);
-
+        const [usersStr, channelsStr, configStr] = await Promise.all([kv.get("users"), kv.get("channels"), kv.get("config")]);
         let users = JSON.parse(usersStr || "{}");
         let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", req_times: [], vip: false };
         let config = JSON.parse(configStr || "{}");
@@ -274,43 +261,32 @@ export default {
         if (user.date !== getTodayStr()) { user.count = 0; user.date = getTodayStr(); }
         
         const limit = user.vip ? DAILY_LIMIT_VIP : DAILY_LIMIT_NORMAL;
-        
-        if (user.count >= limit) {
-           if (user.vip) {
-               return json({ ok: false, error: "网络错误，请稍后再试" }, 429, origin);
-           }
-           return json({ ok: false, error: `额度已用完 (${limit})` }, 429, origin);
-        }
+        if (user.count >= limit) return json({ ok: false, error: "网络错误，请稍后再试" }, 429, origin);
 
         const now = Math.floor(Date.now() / 1000);
         user.req_times = (user.req_times || []).filter(t => now - t < 60);
-        
         const riskLimit = user.vip ? 5 : 3;
         
         if (user.req_times.length >= riskLimit) {
           const token = url.searchParams.get("turnstile_token");
-          
-          if (!token) {
-            return json({ ok: false, need_turnstile: true, error: "触发频率限制，请完成验证" }, 403, origin);
-          }
+          if (!token) return json({ ok: false, need_turnstile: true, error: "触发频率限制，请完成验证" }, 403, origin);
           const isValid = await verifyTurnstile(token, config.turnstile_secret);
-          if (!isValid) {
-            return json({ ok: false, need_turnstile: true, error: "验证失败，请重试" }, 403, origin);
-          }
+          if (!isValid) return json({ ok: false, need_turnstile: true, error: "验证失败，请重试" }, 403, origin);
           user.req_times = []; 
         }
 
         let channels = JSON.parse(channelsStr || "[]");
-        const channel = getRandomChannel(channels, config.ignore_votes);
+        const channel = getRandomChannel(channels, ignoreVotes);
         if (!channel) return json({ ok: false, error: "无可用通道" }, 503, origin);
         
         const realKey = deobfuscate(channel.key);
-
-        const claimR = await doClaim(realKey);
-        if (!claimR.data || claimR.data.code !== 1) return json({ ok: false, error: "领取失败" }, 200, origin);
+        const u = new URL(API + "/claim_by_key");
+        u.searchParams.set("key", realKey);
+        const claimR = await fetchJson(u.toString());
         
-        const convR = await doConvertWithRetry(realKey, claimR.data.username, claimR.data.password);
-        if (!convR.data || convR.data.code !== 1) return json({ ok: false, error: "转换失败" }, 200, origin);
+        if (!claimR.data || claimR.data.code !== 1) {
+           return json({ ok: false, error: claimR.data?.msg || "领取失败" }, 200, origin);
+        }
 
         user.count += 1;
         user.req_times.push(now);
@@ -318,10 +294,27 @@ export default {
         await kv.put("users", JSON.stringify(users));
 
         return json({
-          ok: true, channel: channel.id, username: claimR.data.username, 
-          password: claimR.data.password, cookies: pickCookies(convR.data),
+          ok: true, 
+          channel: channel.id, 
+          channel_key: realKey,
+          username: claimR.data.username, 
+          password: claimR.data.password,
           remaining: limit - user.count
         }, 200, origin);
+      }
+
+      if (path === "/convert") {
+        const username = url.searchParams.get("username");
+        const password = url.searchParams.get("password");
+        const key = url.searchParams.get("key");
+        if (!username || !password || !key) return json({ ok: false, error: "缺少参数" }, 400, origin);
+
+        const convR = await doConvertWithRetry(key, username, password);
+        if (!convR.data || convR.data.code !== 1) {
+           return json({ ok: false, error: "网络错误，请稍后再试" }, 200, origin);
+        }
+
+        return json({ ok: true, cookies: pickCookies(convR.data) }, 200, origin);
       }
 
       return json({ ok: false, error: "not found" }, 404, origin);
