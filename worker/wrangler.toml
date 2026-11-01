@@ -1,7 +1,7 @@
 # 你的 Worker 名称
 name = "cookiew"
 # 你的 Worker 入口文件
-main = "worker/worker.js" 
+main = "worker.js" 
 # 兼容日期
 compatibility_date = "2024-01-01"
 
