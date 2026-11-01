@@ -1,9 +1,8 @@
 // ============================================================
-//  4399 通道代理 Worker（分步版）
+//  4399 通道代理 Worker（含转换自动重试）
 //  /claim   只领取账号
-//  /convert 只转换 Cookies
+//  /convert 只转换 Cookies（内置 3 次重试）
 //  /run     一步到位（兼容）
-//  密钥字符反转混淆，前端只传 channel=1|2|3
 // ============================================================
 
 const ENC = [
@@ -42,7 +41,6 @@ function json(data, status, origin) {
   });
 }
 
-// 带超时的 JSON 请求，返回数据 + 耗时
 async function fetchJson(url, ms = 15000) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
@@ -52,12 +50,10 @@ async function fetchJson(url, ms = 15000) {
       headers: { Accept: "application/json" },
       signal: ctrl.signal
     });
-    const tFetch = Date.now() - t0;
     const text = await res.text();
-    const tAll = Date.now() - t0;
     let data;
     try { data = JSON.parse(text); } catch (e) { data = { raw: text.slice(0, 300) }; }
-    return { data, tFetch, tAll, status: res.status };
+    return { data, status: res.status, elapsed: Date.now() - t0 };
   } catch (e) {
     if (e.name === "AbortError") throw new Error(`请求超时 ${ms}ms`);
     throw e;
@@ -100,13 +96,47 @@ async function doClaim(key) {
   return fetchJson(u.toString(), 15000);
 }
 
-async function doConvert(key, username, password, usePc) {
+// 单次转换
+async function doConvertOnce(key, username, password, useParam) {
   const u = new URL(API + "/convert_cookies_by_key");
   u.searchParams.set("key", key);
   u.searchParams.set("username", username);
   u.searchParams.set("password", password);
-  if (usePc) u.searchParams.set("use", "pc");
+  if (useParam !== null) u.searchParams.set("use", useParam);
   return fetchJson(u.toString(), 20000);
+}
+
+// 带重试的转换：最多 3 次，间隔 0 / 1.2s / 2.5s
+// 遇到 charged=true 立即停（避免重复扣额度）
+// 遇到明确非临时错误（额度/鉴权）立即停
+async function doConvertWithRetry(key, username, password, useParam = "pc") {
+  const delays = [0, 1200, 2500];
+  let last = null;
+
+  for (let i = 0; i < delays.length; i++) {
+    if (delays[i]) await new Promise(r => setTimeout(r, delays[i]));
+
+    const r = await doConvertOnce(key, username, password, useParam);
+    const d = r.data;
+
+    if (d && d.code === 1) {
+      return { ...r, attempts: i + 1 };
+    }
+
+    last = { ...r, attempts: i + 1 };
+
+    // 已扣费，不再重试，避免重复消耗
+    if (d && d.charged === true) return last;
+
+    // 非临时错误不重试
+    const msg = (d && d.msg) || "";
+    if (/额度|quota|invalid|unauthor|forbidden|not\s*found/i.test(msg)) {
+      return last;
+    }
+    // 其余（包括 http_code 500 服务器抽风）继续重试
+  }
+
+  return last;
 }
 
 export default {
@@ -125,12 +155,12 @@ export default {
       const channel = chooseChannel(url);
       const key = KEYS[channel - 1];
       try {
-        const { data, tAll } = await doClaim(key);
+        const { data, elapsed } = await doClaim(key);
         if (!data || data.code !== 1) {
           return json({
             ok: false, stage: "claim", channel,
             error: (data && data.msg) || "领取失败",
-            elapsed: tAll, raw: data
+            elapsed
           }, 200, origin);
         }
         return json({
@@ -140,7 +170,7 @@ export default {
           remaining: data.remaining ?? null,
           quotaLimit: data.quota_limit ?? null,
           usedCount: data.used_count ?? null,
-          elapsed: tAll
+          elapsed
         }, 200, origin);
       } catch (e) {
         return json({ ok: false, stage: "claim", channel, error: e.message }, 200, origin);
@@ -159,23 +189,26 @@ export default {
         return json({ ok: false, stage: "convert", channel, error: "缺少 username 或 password" }, 400, origin);
       }
 
-      const usePc = useParam === null ? true : useParam !== "none";
+      const use = useParam === null ? "pc" : (useParam === "none" ? null : useParam);
 
       try {
-        const { data, tAll } = await doConvert(key, username, password, usePc);
+        const { data, elapsed, attempts } = await doConvertWithRetry(key, username, password, use);
         if (!data || data.code !== 1) {
           return json({
             ok: false, stage: "convert", channel,
             error: (data && data.msg) || "转换失败",
             username, password,
-            elapsed: tAll, raw: data
+            elapsed, attempts,
+            httpCode: data && data.http_code,
+            charged: data && data.charged,
+            upstream: data && data.data
           }, 200, origin);
         }
         const cookies = pickCookies(data);
         return json({
           ok: true, stage: "convert", channel,
           username, password, cookies,
-          elapsed: tAll,
+          elapsed, attempts,
           rawConvert: cookies ? undefined : data
         }, 200, origin);
       } catch (e) {
@@ -183,7 +216,7 @@ export default {
       }
     }
 
-    // ---------- /run 兼容一步到位 ----------
+    // ---------- /run 兼容 ----------
     if (path === "/run" || path === "/" || path === "") {
       const channel = chooseChannel(url);
       const key = KEYS[channel - 1];
@@ -194,36 +227,43 @@ export default {
           return json({
             ok: false, channel, stage: "claim",
             error: (claim && claim.msg) || "领取失败",
-            elapsedClaim: claimR.tAll
+            elapsedClaim: claimR.elapsed
           }, 200, origin);
         }
         const username = claim.username || "";
         const password = claim.password || "";
-        const remaining = claim.remaining ?? null;
-        const quotaLimit = claim.quota_limit ?? null;
-        const usedCount = claim.used_count ?? null;
-
         if (!username || !password) {
           return json({ ok: false, channel, stage: "claim", error: "返回缺少账号或密码" }, 200, origin);
         }
 
-        const convR = await doConvert(key, username, password, true);
+        const convR = await doConvertWithRetry(key, username, password, "pc");
         const conv = convR.data;
         if (!conv || conv.code !== 1) {
           return json({
             ok: false, channel, stage: "convert",
             error: (conv && conv.msg) || "转换失败",
-            username, password, remaining, quotaLimit, usedCount,
-            elapsedClaim: claimR.tAll, elapsedConvert: convR.tAll
+            username, password,
+            remaining: claim.remaining ?? null,
+            quotaLimit: claim.quota_limit ?? null,
+            usedCount: claim.used_count ?? null,
+            elapsedClaim: claimR.elapsed,
+            elapsedConvert: convR.elapsed,
+            attempts: convR.attempts,
+            httpCode: conv && conv.http_code,
+            charged: conv && conv.charged,
+            upstream: conv && conv.data
           }, 200, origin);
         }
         const cookies = pickCookies(conv);
         return json({
           ok: true, channel,
           username, password, cookies,
-          remaining, quotaLimit, usedCount,
-          elapsedClaim: claimR.tAll, elapsedConvert: convR.tAll,
-          rawConvert: cookies ? undefined : conv
+          remaining: claim.remaining ?? null,
+          quotaLimit: claim.quota_limit ?? null,
+          usedCount: claim.used_count ?? null,
+          elapsedClaim: claimR.elapsed,
+          elapsedConvert: convR.elapsed,
+          attempts: convR.attempts
         }, 200, origin);
       } catch (e) {
         return json({ ok: false, channel, error: e.message }, 200, origin);
