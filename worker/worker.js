@@ -30,7 +30,7 @@ function getTodayStr() {
 const obfuscate = (str) => btoa(str.split('').reverse().join(''));
 const deobfuscate = (str) => atob(str).split('').reverse().join('');
 
-async function fetchJson(url, ms = 15000) {
+async function fetchJson(url, ms = 8000) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   try {
@@ -68,7 +68,7 @@ async function doClaim(key) {
 }
 
 async function doConvertWithRetry(key, username, password) {
-  const delays = [0, 1000, 2000];
+  const delays = [0, 300, 600];
   let last;
   for (let i = 0; i < delays.length; i++) {
     if (delays[i]) await new Promise(r => setTimeout(r, delays[i]));
@@ -111,7 +111,6 @@ export default {
       if (!env || !env['4399kv']) return json({ ok: false, error: "服务器错误：未绑定 KV" }, 500, origin);
       const kv = env['4399kv'];
 
-      // ================= Admin API =================
       if (path === "/admin/api") {
         const clientKey = url.searchParams.get("key");
         let adminKey = await kv.get("admin_key");
@@ -129,9 +128,14 @@ export default {
         if (clientKey !== adminKey) return json({ ok: false, error: "密钥错误" }, 403, origin);
 
         if (request.method === "GET") {
-          let channels = JSON.parse(await kv.get("channels") || "[]");
-          let users = JSON.parse(await kv.get("users") || "{}");
-          let config = JSON.parse(await kv.get("config") || "{}");
+          const [channelsStr, usersStr, configStr] = await Promise.all([
+            kv.get("channels"),
+            kv.get("users"),
+            kv.get("config")
+          ]);
+          let channels = JSON.parse(channelsStr || "[]");
+          let users = JSON.parse(usersStr || "{}");
+          let config = JSON.parse(configStr || "{}");
           const safeChannels = channels.map(c => ({ ...c, key: deobfuscate(c.key).slice(0, 10) + "..." }));
           return json({ ok: true, channels: safeChannels, users, config }, 200, origin);
         }
@@ -170,36 +174,44 @@ export default {
         return json({ ok: false, error: "Invalid Request" }, 400, origin);
       }
 
-      // ================= 兑换码核销 =================
       if (path === "/redeem") {
         const fingerprint = url.searchParams.get("fp");
         const cdkInput = url.searchParams.get("cdk");
         if (!fingerprint || !cdkInput) return json({ ok: false, error: "参数错误" }, 400, origin);
 
-        let config = JSON.parse(await kv.get("config") || "{}");
+        const [configStr, usersStr] = await Promise.all([
+          kv.get("config"),
+          kv.get("users")
+        ]);
+        
+        let config = JSON.parse(configStr || "{}");
         if (cdkInput.trim() !== config.cdk) {
           return json({ ok: false, error: "兑换码无效" }, 400, origin);
         }
 
-        let users = JSON.parse(await kv.get("users") || "{}");
+        let users = JSON.parse(usersStr || "{}");
         let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", req_times: [] };
-        user.vip = true; // 标记为 VIP
+        user.vip = true; 
         users[fingerprint] = user;
         await kv.put("users", JSON.stringify(users));
 
         return json({ ok: true, msg: "兑换成功！已解锁无限额度" }, 200, origin);
       }
 
-      // ================= 用户接口 =================
       if (path === "/info") {
         const fingerprint = url.searchParams.get("fp");
         if (!fingerprint) return json({ ok: false, error: "缺少设备指纹" }, 400, origin);
         
-        let users = JSON.parse(await kv.get("users") || "{}");
+        const [usersStr, configStr] = await Promise.all([
+          kv.get("users"),
+          kv.get("config")
+        ]);
+        
+        let users = JSON.parse(usersStr || "{}");
         let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", vip: false };
         if (user.date !== getTodayStr()) user.count = 0;
 
-        let config = JSON.parse(await kv.get("config") || "{}");
+        let config = JSON.parse(configStr || "{}");
         const limit = user.vip ? DAILY_LIMIT_VIP : DAILY_LIMIT_NORMAL;
 
         return json({
@@ -217,7 +229,13 @@ export default {
         const fingerprint = url.searchParams.get("fp");
         if (!fingerprint) return json({ ok: false, error: "缺少设备指纹" }, 400, origin);
 
-        let users = JSON.parse(await kv.get("users") || "{}");
+        const [usersStr, channelsStr, configStr] = await Promise.all([
+          kv.get("users"),
+          kv.get("channels"),
+          kv.get("config")
+        ]);
+
+        let users = JSON.parse(usersStr || "{}");
         let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", req_times: [], vip: false };
 
         if (user.status === "banned") return json({ ok: false, error: "已被封禁" }, 403, origin);
@@ -226,7 +244,6 @@ export default {
         const limit = user.vip ? DAILY_LIMIT_VIP : DAILY_LIMIT_NORMAL;
         if (user.count >= limit) return json({ ok: false, error: `额度已用完 (${limit})` }, 429, origin);
 
-        // ★ 风控检测：普通用户 3次/分，VIP 5次/分
         const now = Math.floor(Date.now() / 1000);
         user.req_times = (user.req_times || []).filter(t => now - t < 60);
         
@@ -234,7 +251,7 @@ export default {
         
         if (user.req_times.length >= riskLimit) {
           const token = url.searchParams.get("turnstile_token");
-          let config = JSON.parse(await kv.get("config") || "{}");
+          let config = JSON.parse(configStr || "{}");
           
           if (!token) {
             return json({ ok: false, need_turnstile: true, error: "触发频率限制，请完成验证" }, 403, origin);
@@ -246,7 +263,7 @@ export default {
           user.req_times = []; 
         }
 
-        let channels = JSON.parse(await kv.get("channels") || "[]");
+        let channels = JSON.parse(channelsStr || "[]");
         const activeChannels = channels.filter(c => c.active);
         if (activeChannels.length === 0) return json({ ok: false, error: "无可用通道" }, 503, origin);
         
