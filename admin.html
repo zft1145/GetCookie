@@ -38,16 +38,24 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background:
 }
 .input-group input:focus { outline: none; border-color: var(--md-primary); }
 
-.btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 12px; border-radius: 100px; border: none; background: var(--md-primary); color: var(--md-on-primary); font-weight: 500; font-size: 14px; cursor: pointer; transition: transform 0.1s; }
+.btn-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 12px; border-radius: 100px; border: none; background: var(--md-primary); color: var(--md-on-primary); font-weight: 500; font-size: 14px; cursor: pointer; transition: transform 0.1s; text-decoration: none; }
 .btn:active { transform: scale(0.96); }
 .btn-outline { background: transparent; color: var(--md-primary); border: 1px solid var(--md-outline-variant); }
-.btn-outline:active { background: var(--md-surface-container-highest); transform: scale(0.96); }
+.btn-outline:active { background: var(--md-surface-container-highest); }
 
 .admin-list { border: 1px solid var(--md-outline-variant); border-radius: 16px; overflow: hidden; }
 .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--md-outline-variant); background: var(--md-surface-container-lowest); transition: background 0.3s; }
 .admin-item:last-child { border-bottom: none; }
 .copy-btn { border: none; background: transparent; color: var(--md-primary); cursor: pointer; font-weight: 500; font-size: 14px; padding: 6px 12px; border-radius: 100px; }
 .copy-btn:active { background: rgba(103,80,164,0.1); }
+
+.switch { position: relative; display: inline-block; width: 52px; height: 32px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--md-surface-container-highest); transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 24px; width: 24px; left: 4px; bottom: 4px; background-color: var(--md-outline); transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--md-primary); }
+input:checked + .slider:before { transform: translateX(20px); background-color: var(--md-on-primary); }
 
 .snackbar { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 100px); background: var(--md-surface-container-highest); color: var(--md-on-surface); padding: 12px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transition: all 0.3s; z-index: 100; }
 .snackbar.show { transform: translate(-50%, 0); opacity: 1; }
@@ -72,6 +80,11 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background:
     <button class="btn" id="authBtn">验证进入</button>
   </section>
 
+  <div class="btn-row" id="navBtns" style="display:none">
+    <a href="https://4399pc.cc/account" target="_blank" class="btn btn-outline">曲奇 API 界面</a>
+    <a href="https://cookie.xtz1.top" target="_blank" class="btn btn-outline">主站页面</a>
+  </div>
+
   <section class="card" id="addChannelCard" style="display:none">
     <h2 class="card-title">增加新通道</h2>
     <div class="input-group">
@@ -84,12 +97,21 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background:
   </section>
 
   <section class="card" id="dataCard" style="display:none">
-    <h2 class="card-title">通道状态管理</h2>
+    <h2 class="card-title">通道状态与投票</h2>
     <div class="admin-list" id="channelList">加载中…</div>
   </section>
 
   <section class="card" id="configCard" style="display:none">
     <h2 class="card-title">系统设置</h2>
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; padding:0 4px;">
+      <span style="font-size:14px;">忽略投票 (纯随机分配)</span>
+      <label class="switch">
+        <input type="checkbox" id="cfgIgnoreVotes">
+        <span class="slider"></span>
+      </label>
+    </div>
+
     <div class="input-group">
       <input type="text" id="cfgSiteKey" placeholder="Turnstile Site Key">
     </div>
@@ -136,11 +158,18 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background:
       }
 
       $('authCard').style.display = 'none';
-      ['addChannelCard','dataCard','configCard','userCard'].forEach(id => $(id).style.display = 'block');
+      ['navBtns','addChannelCard','dataCard','configCard','userCard'].forEach(id => $(id).style.display = 'flex');
+      $('addChannelCard').style.display = 'block';
+      $('dataCard').style.display = 'block';
+      $('configCard').style.display = 'block';
+      $('userCard').style.display = 'block';
 
       $('channelList').innerHTML = data.channels.map(c => `
         <div class="admin-item">
-          <div><strong>${c.name}</strong><br><span style="font-size:12px;color:var(--md-on-surface-variant)">${c.key}</span></div>
+          <div>
+            <strong>${c.name}</strong> <span style="font-size:12px;color:var(--md-primary)">(票数: ${c.votes||0})</span>
+            <br><span style="font-size:12px;color:var(--md-on-surface-variant)">${c.key}</span>
+          </div>
           <button class="copy-btn" onclick="toggleChannel(${c.id}, ${!c.active})" style="color:${c.active?'var(--md-success)':'var(--md-error)'}">
             ${c.active ? '开启中' : '已关闭'}
           </button>
@@ -151,6 +180,7 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background:
         $('cfgSiteKey').value = data.config.turnstile_site_key || '';
         $('cfgSecret').value = data.config.turnstile_secret || '';
         $('cfgCdk').value = data.config.cdk || '';
+        $('cfgIgnoreVotes').checked = data.config.ignore_votes || false;
       }
 
       const userKeys = Object.keys(data.users);
@@ -160,7 +190,7 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background:
         $('userList').innerHTML = userKeys.map(fp => {
           const u = data.users[fp];
           const vipBadge = u.vip ? `<span style="color:#FFF;background:var(--md-primary);font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;">VIP</span>` : '';
-          const limit = u.vip ? '∞' : 20;
+          const limit = u.vip ? 45 : 20;
           return `
           <div class="admin-item">
             <div>
@@ -214,9 +244,10 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background:
     const turnstile_site_key = $('cfgSiteKey').value.trim();
     const turnstile_secret = $('cfgSecret').value.trim();
     const cdk = $('cfgCdk').value.trim();
+    const ignore_votes = $('cfgIgnoreVotes').checked;
     await fetch(`https://cookiew.xtz1.top/admin/api?key=${ADMIN_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'save_config', config: { turnstile_site_key, turnstile_secret, cdk } })
+      body: JSON.stringify({ action: 'save_config', config: { turnstile_site_key, turnstile_secret, cdk, ignore_votes } })
     });
     toast('配置已保存');
   });
