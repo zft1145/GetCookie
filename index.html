@@ -4,6 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>4399 账号与 Cookies</title>
+<!-- 引入 Turnstile 验证脚本 -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
 :root{
   --md-primary:#6750A4; --md-on-primary:#fff;
@@ -31,93 +33,99 @@ html[data-theme="dark"]{
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{
-  margin:0;font-family:'Roboto','Noto Sans SC',system-ui,-apple-system,'Segoe UI',sans-serif;
+  margin:0;font-family:'Roboto','Noto Sans SC',system-ui,-apple-system,sans-serif;
   font-size:14px;line-height:1.5;background:var(--md-surface);color:var(--md-on-surface);
-  -webkit-font-smoothing:antialiased;transition:background-color .25s,color .25s;
+  -webkit-font-smoothing:antialiased;transition:background-color .25s,color .25s; overflow-x:hidden;
 }
-.app-bar{
-  position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;
-  height:64px;padding:0 8px 0 20px;background:var(--md-surface-container);
+.app-bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;height:64px;padding:0 8px 0 20px;background:var(--md-surface-container);}
+.app-bar h1{margin:0;font-size:17px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.spacer{flex:1;}
+.icon-button{width:48px;height:48px;flex:0 0 48px;border:none;border-radius:50%;background:transparent;color:var(--md-on-surface-variant);display:grid;place-items:center;cursor:pointer;transition:background .15s;}
+.icon-button:hover{background:var(--md-surface-container-high);}
+.content{max-width:640px;margin:0 auto;padding:16px 16px 96px;}
+
+/* 卡片出现动画 */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.app-bar h1{margin:0;font-size:17px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.spacer{flex:1}
-.icon-button{
-  width:48px;height:48px;flex:0 0 48px;border:none;border-radius:50%;
-  background:transparent;color:var(--md-on-surface-variant);
-  display:grid;place-items:center;cursor:pointer;transition:background .15s;
+.card{
+  background:var(--md-surface-container-low);border-radius:16px;padding:20px;margin-bottom:16px;
+  animation: fadeUp 0.4s cubic-bezier(0.2, 0, 0, 1) forwards;
+  opacity: 0;
 }
-.icon-button:hover{background:var(--md-surface-container-high)}
-.content{max-width:640px;margin:0 auto;padding:16px 16px 96px}
-.card{background:var(--md-surface-container-low);border-radius:16px;padding:20px;margin-bottom:16px}
-.card-title{margin:0 0 12px;font-size:15px;font-weight:500}
-.label{font-size:12px;letter-spacing:.4px;color:var(--md-on-surface-variant);margin-bottom:6px}
+.card:nth-child(2) { animation-delay: 0.1s; }
+.card:nth-child(3) { animation-delay: 0.2s; }
+
+.card-title{margin:0 0 12px;font-size:15px;font-weight:500;}
+.label{font-size:12px;letter-spacing:.4px;color:var(--md-on-surface-variant);margin-bottom:6px;}
 
 .status-grid { display: flex; align-items: center; justify-content: center; padding: 16px 0 24px 0; }
 .status-item { flex: 1; text-align: center; }
 .status-item .k { font-size: 13px; color: var(--md-on-surface-variant); margin-bottom: 4px; }
-.status-item .v { font-size: 36px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.status-item .v { font-size: 36px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; transition: color 0.3s; }
 .status-divider { width: 1px; height: 48px; background: var(--md-outline-variant); margin: 0 16px; }
-.status-sub { text-align: center; font-size: 12.5px; color: var(--md-on-surface-variant); margin-bottom: 20px; }
+.status-sub { text-align: center; font-size: 12.5px; color: var(--md-on-surface-variant); margin-bottom: 20px; transition: color 0.3s; }
 
+/* 按钮涟漪动画 */
 .filled-button{
-  position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:10px;
+  position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:10px;
   width:100%;height:52px;border:none;border-radius:100px;
   background:var(--md-primary);color:var(--md-on-primary);
   font-family:inherit;font-size:15px;font-weight:500;cursor:pointer;
-  transition:box-shadow .2s,opacity .2s;
+  transition:box-shadow .2s, transform .1s, opacity .2s;
 }
-.filled-button:hover{box-shadow:var(--md-elev1)}
-.filled-button:disabled{opacity:.55;cursor:default;box-shadow:none}
-.spinner{
-  width:18px;height:18px;border-radius:50%;border:2px solid currentColor;
-  border-top-color:transparent;animation:spin .7s linear infinite;display:none;
-}
-.spinner.on{display:block}
-@keyframes spin{to{transform:rotate(360deg)}}
+.filled-button:hover{box-shadow:var(--md-elev1);}
+.filled-button:active{transform:scale(0.98);}
+.filled-button:disabled{opacity:.55;cursor:default;box-shadow:none; transform:none;}
+.spinner{width:18px;height:18px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;animation:spin .7s linear infinite;display:none;}
+.spinner.on{display:block;}
+@keyframes spin{to{transform:rotate(360deg);}}
 
+/* 提取结果列表动画 */
 .result-row{
   display:flex;align-items:center;gap:8px;padding:12px 6px 12px 16px;
   border-radius:12px;background:var(--md-surface-container);margin-bottom:10px;
+  transition: background-color 0.3s;
 }
-.result-row .info{flex:1;min-width:0}
-.result-row .k{font-size:11.5px;color:var(--md-on-surface-variant)}
-.result-row .v{
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:15px;margin-top:2px;word-break:break-all;
-}
-.result-block{border-radius:12px;background:var(--md-surface-container);padding:12px 6px 12px 16px}
-.result-block-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.result-row .info{flex:1;min-width:0;}
+.result-row .k{font-size:11.5px;color:var(--md-on-surface-variant);}
+.result-row .v{font-family:ui-monospace,monospace;font-size:15px;margin-top:2px;word-break:break-all; transition: color 0.3s;}
+.result-block{border-radius:12px;background:var(--md-surface-container);padding:12px 6px 12px 16px;}
+.result-block-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .cookie-box{
-  margin:8px 10px 0 0;padding:12px 14px;border-radius:12px;
-  background:var(--md-surface-container-high);
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:12.5px;line-height:1.65;white-space:pre-wrap;word-break:break-all;
-  max-height:200px;overflow:auto;color:var(--md-on-surface);
+  margin:8px 10px 0 0;padding:12px 14px;border-radius:12px;background:var(--md-surface-container-high);
+  font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.65;white-space:pre-wrap;
+  word-break:break-all;max-height:200px;overflow:auto;
 }
-.copy-btn{
-  flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;
-  border:none;background:transparent;color:var(--md-primary);
-  font-family:inherit;font-size:13px;font-weight:500;
-  padding:8px 14px;border-radius:100px;cursor:pointer;transition:background .15s;
-}
-.copy-btn:hover{background:rgba(103,80,164,.08)}
+.copy-btn{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;border:none;background:transparent;color:var(--md-primary);font-family:inherit;font-size:13px;font-weight:500;padding:8px 14px;border-radius:100px;cursor:pointer;transition:background .15s;}
+.copy-btn:hover{background:rgba(103,80,164,.08);}
 .log{
-  height:150px;overflow:auto;padding:12px;border-radius:12px;
-  background:var(--md-surface-container-high);
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-  font-size:12px;line-height:1.7;color:var(--md-on-surface-variant);
+  height:150px;overflow:auto;padding:12px;border-radius:12px;background:var(--md-surface-container-high);
+  font-family:ui-monospace,monospace;font-size:12px;line-height:1.7;color:var(--md-on-surface-variant);
 }
-.log-line{white-space:pre-wrap;word-break:break-all}
-.log-ok{color:var(--md-success)}
-.log-err{color:var(--md-error)}
-.snackbar{
-  position:fixed;left:50%;bottom:24px;z-index:100;transform:translate(-50%,140%);
-  max-width:calc(100% - 32px);padding:14px 20px;border-radius:8px;
-  background:var(--md-surface-container-highest);color:var(--md-on-surface);
-  font-size:14px;box-shadow:var(--md-elev2);opacity:0;pointer-events:none;
-  transition:transform .3s cubic-bezier(.2,0,0,1),opacity .3s;
+.log-line{white-space:pre-wrap;word-break:break-all;}
+.log-ok{color:var(--md-success);}
+.log-err{color:var(--md-error);}
+
+/* 验证弹窗 */
+.modal-overlay {
+  position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:200;
+  display:none;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s;
 }
-.snackbar.show{transform:translate(-50%,0);opacity:1}
+.modal-overlay.show { display:flex; opacity:1; }
+.modal-box {
+  background:var(--md-surface-container);padding:24px;border-radius:24px;text-align:center;
+  transform:scale(0.9);transition:transform 0.3s cubic-bezier(0.2,0,0,1);max-width:90%;width:340px;
+}
+.modal-overlay.show .modal-box { transform:scale(1); }
+.modal-title { font-size:18px;font-weight:500;margin-bottom:8px;color:var(--md-on-surface); }
+.modal-desc { font-size:13px;color:var(--md-on-surface-variant);margin-bottom:20px; }
+#turnstile-container { display:flex; justify-content:center; margin-bottom:16px; }
+.modal-close { background:var(--md-surface-container-highest);border:none;padding:10px 24px;border-radius:100px;font-family:inherit;cursor:pointer;color:var(--md-on-surface); }
+
+.snackbar{position:fixed;left:50%;bottom:24px;z-index:300;transform:translate(-50%,140%);max-width:calc(100% - 32px);padding:14px 20px;border-radius:8px;background:var(--md-surface-container-highest);color:var(--md-on-surface);font-size:14px;box-shadow:var(--md-elev2);opacity:0;pointer-events:none;transition:transform .3s, opacity .3s;}
+.snackbar.show{transform:translate(-50%,0);opacity:1;}
 </style>
 </head>
 <body>
@@ -180,6 +188,16 @@ body{
   </section>
 </main>
 
+<!-- Turnstile 验证弹窗 -->
+<div class="modal-overlay" id="turnstileModal">
+  <div class="modal-box">
+    <div class="modal-title">安全验证</div>
+    <div class="modal-desc">系统检测到您操作过于频繁，<br>请完成验证以继续获取。</div>
+    <div id="turnstile-container"></div>
+    <button class="modal-close" id="closeModalBtn">取消</button>
+  </div>
+</div>
+
 <div class="snackbar" id="snackbar"></div>
 
 <script>
@@ -199,6 +217,7 @@ body{
   
   let snackTimer;
   let busy = false;
+  let userFp = '';
 
   function toast(msg) {
     snackbar.textContent = msg;
@@ -207,26 +226,17 @@ body{
     snackTimer = setTimeout(() => snackbar.classList.remove('show'), 2200);
   }
 
-  // 指纹生成
   async function generateFingerprint() {
     let savedFp = localStorage.getItem('user_fp');
     if (savedFp) return savedFp;
-    const raw = [
-      navigator.userAgent, screen.width + 'x' + screen.height, navigator.language,
-      new Date().getTimezoneOffset(), navigator.hardwareConcurrency || 'unknown', navigator.deviceMemory || 'unknown'
-    ].join('|');
+    const raw = [navigator.userAgent, screen.width + 'x' + screen.height, navigator.language, new Date().getTimezoneOffset()].join('|');
     let hash = 0;
-    for (let i = 0; i < raw.length; i++) {
-      const char = raw.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
+    for (let i = 0; i < raw.length; i++) { hash = ((hash << 5) - hash) + raw.charCodeAt(i); hash = hash & hash; }
     const fp = 'FP_' + Math.abs(hash).toString(16).toUpperCase();
     localStorage.setItem('user_fp', fp);
     return fp;
   }
 
-  // 复制
   function copyText(text) {
     if (!text || text === '—') { toast('暂无内容'); return; }
     if (navigator.clipboard && window.isSecureContext) {
@@ -253,9 +263,9 @@ body{
     logEl.scrollTop = logEl.scrollHeight;
   }
 
-  async function loadInfo(fp) {
+  async function loadInfo() {
     try {
-      const res = await fetch(`${WORKER_URL}/info?fp=${fp}`, { cache: 'no-store' });
+      const res = await fetch(`${WORKER_URL}/info?fp=${userFp}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.ok) {
         userQuota.textContent = data.remaining;
@@ -264,98 +274,140 @@ body{
         
         if (data.remaining === 0) {
           userQuota.style.color = 'var(--md-error)';
-          getBtn.disabled = true;
-          btnText.textContent = '额度已用完';
+          getBtn.disabled = true; btnText.textContent = '额度已用完';
         } else {
           userQuota.style.color = 'var(--md-primary)';
-          getBtn.disabled = false;
-          btnText.textContent = '获取';
+          getBtn.disabled = false; btnText.textContent = '获取';
         }
         
         if (data.status === 'banned') {
-          getBtn.disabled = true;
-          btnText.textContent = '已封禁';
+          getBtn.disabled = true; btnText.textContent = '已封禁';
           userQuota.textContent = '0';
           userStatusText.textContent = '您的设备已被管理员封禁';
           userStatusText.style.color = 'var(--md-error)';
         }
-      } else {
-        userStatusText.textContent = data.error || '状态获取失败';
-        userStatusText.style.color = 'var(--md-error)';
       }
     } catch (e) {
-      userStatusText.textContent = '网络异常，无法获取额度';
+      userStatusText.textContent = '网络异常，获取状态失败';
       userStatusText.style.color = 'var(--md-error)';
     }
   }
 
-  (async function init() {
-    const fp = await generateFingerprint();
-    await loadInfo(fp);
-
-    getBtn.addEventListener('click', async () => {
-      if (busy) return;
-      busy = true;
-      getBtn.disabled = true;
-      spinner.classList.add('on');
-      btnText.textContent = '获取中…';
-      
-      $('outChannel').textContent = '—';
-      $('outUser').textContent = '—';
-      $('outPass').textContent = '—';
-      $('outCookie').textContent = '—';
-      
-      log('正在请求服务器…');
+  // 弹出 Turnstile
+  async function showTurnstile() {
+    return new Promise(async (resolve) => {
       try {
-        const res = await fetch(`${WORKER_URL}/run?fp=${fp}`, { cache: 'no-store' });
+        const res = await fetch(`${WORKER_URL}/admin/api?key=XJ9k-mP4q-W2nV`); // 借用后台接口拿 site_key
         const data = await res.json();
+        const siteKey = data.config?.turnstile_site_key;
         
-        if (!data.ok) {
-          log(`失败: ${data.error}`, 'err');
-          toast(data.error);
-          if (data.error.includes('额度已用完')) {
-            userQuota.textContent = '0';
-            userQuota.style.color = 'var(--md-error)';
-            btnText.textContent = '额度已用完';
-            return;
-          }
-          if (data.error.includes('封禁')) {
-            getBtn.disabled = true;
-            btnText.textContent = '已封禁';
-            return;
-          }
-          getBtn.disabled = false;
-          btnText.textContent = '获取';
-          return;
+        if (!siteKey) {
+          toast("管理员未配置人机验证，请稍后再试");
+          resolve(null); return;
         }
 
-        $('outChannel').textContent = `通道 ${data.channel}`;
-        $('outUser').textContent = data.username;
-        $('outPass').textContent = data.password;
-        $('outCookie').textContent = data.cookies || '解析失败';
-        
-        userQuota.textContent = data.remaining;
-        if (data.remaining === 0) {
-          userQuota.style.color = 'var(--md-error)';
-          btnText.textContent = '额度已用完';
-        } else {
-          getBtn.disabled = false;
-          btnText.textContent = '获取';
-        }
-        
-        await loadInfo(fp); 
-        log(`获取成功！剩余 ${data.remaining} 次`, 'ok');
-        toast('获取成功');
-      } catch (e) {
-        log(`网络异常: ${e.message}`, 'err');
-        toast('网络异常');
-        getBtn.disabled = false;
-        btnText.textContent = '获取';
-      } finally {
-        busy = false;
-        spinner.classList.remove('on');
+        const modal = $('turnstileModal');
+        const container = $('turnstile-container');
+        container.innerHTML = '';
+        modal.classList.add('show');
+
+        const widgetId = turnstile.render(container, {
+          sitekey: siteKey,
+          theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
+          callback: function(token) {
+            modal.classList.remove('show');
+            resolve(token);
+          },
+          'error-callback': function() {
+            modal.classList.remove('show');
+            resolve(null);
+          }
+        });
+
+        $('closeModalBtn').onclick = () => {
+          turnstile.remove(widgetId);
+          modal.classList.remove('show');
+          resolve(null);
+        };
+      } catch(e) {
+        resolve(null);
       }
     });
+  }
+
+  async function doFetch(token = '') {
+    if (busy) return;
+    busy = true;
+    getBtn.disabled = true;
+    spinner.classList.add('on');
+    btnText.textContent = '获取中…';
+    
+    $('outChannel').textContent = '—';
+    $('outUser').textContent = '—';
+    $('outPass').textContent = '—';
+    $('outCookie').textContent = '—';
+    
+    log('正在请求服务器…');
+    try {
+      const url = `${WORKER_URL}/run?fp=${userFp}` + (token ? `&turnstile_token=${token}` : '');
+      const res = await fetch(url, { cache: 'no-store' });
+      const data = await res.json();
+      
+      if (!data.ok) {
+        if (data.need_turnstile) {
+          log('触发风控限制，需要验证', 'err');
+          spinner.classList.remove('on');
+          btnText.textContent = '请完成验证';
+          
+          const newToken = await showTurnstile();
+          busy = false; // 释放lock
+          if (newToken) {
+            doFetch(newToken); // 带着 token 重试
+          } else {
+            getBtn.disabled = false; btnText.textContent = '获取';
+          }
+          return;
+        }
+        
+        log(`失败: ${data.error}`, 'err');
+        toast(data.error);
+        if (data.error.includes('额度')) {
+          userQuota.textContent = '0'; userQuota.style.color = 'var(--md-error)'; btnText.textContent = '额度已用完';
+          return;
+        }
+        getBtn.disabled = false; btnText.textContent = '获取';
+        return;
+      }
+
+      $('outChannel').textContent = `通道 ${data.channel}`;
+      $('outUser').textContent = data.username;
+      $('outPass').textContent = data.password;
+      $('outCookie').textContent = data.cookies || '解析失败';
+      
+      userQuota.textContent = data.remaining;
+      if (data.remaining === 0) {
+        userQuota.style.color = 'var(--md-error)'; btnText.textContent = '额度已用完';
+      } else {
+        getBtn.disabled = false; btnText.textContent = '获取';
+      }
+      
+      loadInfo(); 
+      log(`获取成功！剩余 ${data.remaining} 次`, 'ok');
+      toast('获取成功');
+    } catch (e) {
+      log(`网络异常: ${e.message}`, 'err');
+      toast('网络异常');
+      getBtn.disabled = false; btnText.textContent = '获取';
+    } finally {
+      busy = false;
+      spinner.classList.remove('on');
+    }
+  }
+
+  (async function init() {
+    userFp = await generateFingerprint();
+    await loadInfo();
+    getBtn.addEventListener('click', () => doFetch());
   })();
 
   // 主题切换
