@@ -183,6 +183,15 @@ export default {
             }
             return json({ ok: true }, 200, origin);
           }
+          if (body.action === "reset_user_quota") {
+  let users = JSON.parse(await kv.get("users") || "{}");
+  if (users[body.fingerprint]) {
+    users[body.fingerprint].count = 0;
+    users[body.fingerprint].req_times = []; // 顺便清空风控限制
+    await kv.put("users", JSON.stringify(users));
+  }
+  return json({ ok: true }, 200, origin);
+          }
         }
         return json({ ok: false, error: "Invalid Request" }, 400, origin);
       }
