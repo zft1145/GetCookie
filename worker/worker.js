@@ -1,14 +1,14 @@
 // ============================================================
-//  4399 通道代理 Worker (KV动态管理版)
+//  4399 通道代理 Worker (KV动态管理版 + 状态查询)
 //  绑定 KV 变量名: 4399kv
 // ============================================================
 
 const API = "https://api.4399pc.cc";
-const ALLOWED_ORIGIN = "https://cookie.xtz1.top"; // 强制限制的域名
-const DAILY_LIMIT = 20; // 每个用户每天可获取次数
+const ALLOWED_ORIGIN = "https://cookie.xtz1.top"; // 严格限制的域名
+const DAILY_LIMIT = 20;
 
 function corsHeaders(origin) {
-  const allow = origin === ALLOWED_ORIGIN ? origin : ALLOWED_ORIGIN;
+  const allow = origin || "*";
   return {
     "Access-Control-Allow-Origin": allow,
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
@@ -29,13 +29,11 @@ function json(data, status, origin) {
   });
 }
 
-// 获取今天日期字符串
 function getTodayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
 }
 
-// 简易混淆加解密 (非明文存储 API Key)
 const obfuscate = (str) => btoa(str.split('').reverse().join(''));
 const deobfuscate = (str) => atob(str).split('').reverse().join('');
 
@@ -104,101 +102,104 @@ export default {
       return new Response(null, { headers: corsHeaders(origin) });
     }
 
-    // 强制校验域名
-    if (origin && origin !== ALLOWED_ORIGIN) {
-      return new Response("Forbidden Origin", { status: 403, headers: corsHeaders(origin) });
-    }
-
-    const kv = env['4399kv'];
-
-    // ==========================================
-    // 后台 API 接口 (/admin/api)
-    // ==========================================
-    if (path === "/admin/api") {
-      const clientKey = url.searchParams.get("key");
-      if (!clientKey) return json({ ok: false, msg: "缺少鉴权参数" }, 401, origin);
-      
-      // 从 KV 获取管理员密钥
-      let adminKey = await kv.get("admin_key");
-      if (!adminKey) {
-        // 初始化
-        adminKey = "XJ9k-mP4q-W2nV";
-        await kv.put("admin_key", adminKey);
-        // 顺便初始化 3 个通道
-        const defaultChannels = [
-          { id: 1, name: "通道 1", key: obfuscate("aku_9747f851a78b44dfbc337368edd45b8e61676e33"), active: true },
-          { id: 2, name: "通道 2", key: obfuscate("aku_9d2aa951ba6d0035026cd26a3cda357131661a8d"), active: true },
-          { id: 3, name: "通道 3", key: obfuscate("aku_57f3b8d2f79a11655b7021e1e37cc7796ea63153"), active: true }
-        ];
-        await kv.put("channels", JSON.stringify(defaultChannels));
+    try {
+      if (!env || !env['4399kv']) {
+        return json({ ok: false, msg: "服务器错误：未绑定 KV (4399kv)" }, 500, origin);
       }
+      const kv = env['4399kv'];
 
-      if (clientKey !== adminKey) return json({ ok: false, msg: "密钥错误" }, 403, origin);
+      // ==========================================
+      // 后台 API 接口 (/admin/api)
+      // ==========================================
+      if (path === "/admin/api") {
+        const clientKey = url.searchParams.get("key");
+        if (!clientKey) return json({ ok: false, msg: "缺少鉴权参数" }, 401, origin);
+        
+        let adminKey = await kv.get("admin_key");
+        if (!adminKey) {
+          adminKey = "XJ9k-mP4q-W2nV";
+          await kv.put("admin_key", adminKey);
+          const defaultChannels = [
+            { id: 1, name: "通道 1", key: obfuscate("aku_9747f851a78b44dfbc337368edd45b8e61676e33"), active: true },
+            { id: 2, name: "通道 2", key: obfuscate("aku_9d2aa951ba6d0035026cd26a3cda357131661a8d"), active: true },
+            { id: 3, name: "通道 3", key: obfuscate("aku_57f3b8d2f79a11655b7021e1e37cc7796ea63153"), active: true }
+          ];
+          await kv.put("channels", JSON.stringify(defaultChannels));
+        }
 
-      // GET 获取数据
-      if (request.method === "GET") {
-        let channels = JSON.parse(await kv.get("channels") || "[]");
-        let users = JSON.parse(await kv.get("users") || "{}");
-        // 隐藏真实 Key，只传掩码
-        const safeChannels = channels.map(c => ({ ...c, key: deobfuscate(c.key).slice(0, 10) + "..." }));
-        return json({ ok: true, channels: safeChannels, users }, 200, origin);
-      }
-      // POST 修改数据
-      if (request.method === "POST") {
-        const body = await request.json();
-        if (body.action === "toggle_channel") {
+        if (clientKey !== adminKey) return json({ ok: false, msg: "密钥错误" }, 403, origin);
+
+        if (request.method === "GET") {
           let channels = JSON.parse(await kv.get("channels") || "[]");
-          channels = channels.map(c => c.id === body.id ? { ...c, active: body.active } : c);
-          await kv.put("channels", JSON.stringify(channels));
-          return json({ ok: true });
-        }
-        if (body.action === "ban_user") {
           let users = JSON.parse(await kv.get("users") || "{}");
-          if (users[body.fingerprint]) {
-            users[body.fingerprint].status = body.status;
-            await kv.put("users", JSON.stringify(users));
-          }
-          return json({ ok: true });
+          const safeChannels = channels.map(c => ({ ...c, key: deobfuscate(c.key).slice(0, 10) + "..." }));
+          return json({ ok: true, channels: safeChannels, users }, 200, origin);
         }
-      }
-      return json({ ok: false, msg: "Invalid Request" }, 400, origin);
-    }
 
-    // ==========================================
-    // 普通用户接口 (/run)
-    // ==========================================
-    if (path === "/run" || path === "/") {
-      const fingerprint = url.searchParams.get("fp");
-      if (!fingerprint) return json({ ok: false, error: "缺少设备指纹" }, 400, origin);
-
-      // 1. 校验用户状态与额度
-      const today = getTodayStr();
-      let users = JSON.parse(await kv.get("users") || "{}");
-      let user = users[fingerprint] || { count: 0, date: today, status: "active" };
-
-      if (user.status === "banned") {
-        return json({ ok: false, error: "您的设备已被封禁，无法获取" }, 403, origin);
-      }
-      if (user.date !== today) {
-        user.count = 0;
-        user.date = today;
-      }
-      if (user.count >= DAILY_LIMIT) {
-        return json({ ok: false, error: "今日额度已用完，请明天再来" }, 429, origin);
+        if (request.method === "POST") {
+          const body = await request.json();
+          if (body.action === "toggle_channel") {
+            let channels = JSON.parse(await kv.get("channels") || "[]");
+            channels = channels.map(c => c.id === body.id ? { ...c, active: body.active } : c);
+            await kv.put("channels", JSON.stringify(channels));
+            return json({ ok: true }, 200, origin);
+          }
+          if (body.action === "ban_user") {
+            let users = JSON.parse(await kv.get("users") || "{}");
+            if (users[body.fingerprint]) {
+              users[body.fingerprint].status = body.status;
+              await kv.put("users", JSON.stringify(users));
+            }
+            return json({ ok: true }, 200, origin);
+          }
+        }
+        return json({ ok: false, msg: "Invalid Request" }, 400, origin);
       }
 
-      // 2. 选出启用的通道
-      let channels = JSON.parse(await kv.get("channels") || "[]");
-      const activeChannels = channels.filter(c => c.active);
-      if (activeChannels.length === 0) {
-        return json({ ok: false, error: "当前没有可用通道，请联系管理员" }, 503, origin);
-      }
-      
-      const channel = activeChannels[Math.floor(Math.random() * activeChannels.length)];
-      const realKey = deobfuscate(channel.key);
+      // ==========================================
+      // 用户状态查询接口 (/info)
+      // ==========================================
+      if (path === "/info") {
+        const fingerprint = url.searchParams.get("fp");
+        if (!fingerprint) return json({ ok: false, error: "缺少设备指纹" }, 400, origin);
 
-      // 3. 开始获取与转换
-      try {
+        const today = getTodayStr();
+        let users = JSON.parse(await kv.get("users") || "{}");
+        let user = users[fingerprint] || { count: 0, date: today, status: "active" };
+
+        if (user.date !== today) user.count = 0;
+
+        return json({
+          ok: true,
+          remaining: Math.max(0, DAILY_LIMIT - user.count),
+          used: user.count,
+          totalUsers: Object.keys(users).length,
+          status: user.status
+        }, 200, origin);
+      }
+
+      // ==========================================
+      // 普通用户接口 (/run)
+      // ==========================================
+      if (path === "/run" || path === "/") {
+        const fingerprint = url.searchParams.get("fp");
+        if (!fingerprint) return json({ ok: false, error: "缺少设备指纹" }, 400, origin);
+
+        const today = getTodayStr();
+        let users = JSON.parse(await kv.get("users") || "{}");
+        let user = users[fingerprint] || { count: 0, date: today, status: "active" };
+
+        if (user.status === "banned") return json({ ok: false, error: "您的设备已被封禁，无法获取" }, 403, origin);
+        if (user.date !== today) { user.count = 0; user.date = today; }
+        if (user.count >= DAILY_LIMIT) return json({ ok: false, error: "今日额度已用完，请明天再来" }, 429, origin);
+
+        let channels = JSON.parse(await kv.get("channels") || "[]");
+        const activeChannels = channels.filter(c => c.active);
+        if (activeChannels.length === 0) return json({ ok: false, error: "当前没有可用通道，请联系管理员" }, 503, origin);
+        
+        const channel = activeChannels[Math.floor(Math.random() * activeChannels.length)];
+        const realKey = deobfuscate(channel.key);
+
         const claimR = await doClaim(realKey);
         const claim = claimR.data;
         if (!claim || claim.code !== 1) {
@@ -216,7 +217,6 @@ export default {
 
         const cookies = pickCookies(conv);
 
-        // 4. 成功才扣次数并更新 KV
         user.count += 1;
         users[fingerprint] = user;
         await kv.put("users", JSON.stringify(users));
@@ -225,12 +225,11 @@ export default {
           ok: true, channel: channel.id, username, password, cookies,
           remaining: DAILY_LIMIT - user.count
         }, 200, origin);
-
-      } catch (e) {
-        return json({ ok: false, channel: channel.id, error: e.message }, 200, origin);
       }
-    }
 
-    return json({ ok: false, error: "not found" }, 404, origin);
+      return json({ ok: false, error: "not found" }, 404, origin);
+    } catch (e) {
+      return json({ ok: false, msg: "Worker 内部异常: " + e.message }, 500, origin);
+    }
   }
 };
