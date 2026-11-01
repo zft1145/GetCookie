@@ -69,7 +69,17 @@ body {
 .status-item { text-align: center; flex: 1; }
 .status-value { color: var(--md-primary); font-size: 36px; font-weight: 600; line-height: 1.2; margin: 4px 0; font-variant-numeric: tabular-nums; }
 .status-divider { width: 1px; height: 40px; background-color: var(--md-outline-variant); opacity: 0.5; }
-.status-hint { text-align: center; color: var(--md-on-surface-variant); font-size: 13px; margin-bottom: 20px; }
+.status-hint { text-align: center; color: var(--md-on-surface-variant); font-size: 13px; margin-bottom: 16px; }
+
+.progress-container {
+  height: 4px; width: 100%; background-color: var(--md-surface-container-highest);
+  border-radius: 2px; margin-bottom: 16px; overflow: hidden; display: none;
+}
+.progress-container.show { display: block; }
+.progress-bar {
+  height: 100%; width: 0%; background-color: var(--md-primary);
+  transition: width 0.3s ease; border-radius: 2px;
+}
 
 .filled-button { 
   display: flex; align-items: center; justify-content: center; 
@@ -98,7 +108,6 @@ body {
 }
 
 .result-list { display: flex; flex-direction: column; gap: 12px; }
-.grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .result-item { 
   display: flex; flex-direction: column; 
   padding: 12px 14px; 
@@ -106,6 +115,17 @@ body {
   border-radius: 16px; 
   position: relative; 
 }
+.channel-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; }
+.vote-btn { 
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--md-surface-container-high); border: none; padding: 8px 16px; 
+  border-radius: 100px; color: var(--md-primary); font-weight: 600; cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+.vote-btn:active { transform: scale(0.9); background: var(--md-primary-container); }
+.vote-btn svg { width: 18px; height: 18px; }
+
+.grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .result-label { color: var(--md-on-surface-variant); font-size: 11px; margin-bottom: 4px; }
 .result-text { font-family: ui-monospace, monospace; font-size: 14px; color: var(--md-on-surface); word-break: break-all; padding-right: 24px; }
 .text-primary { color: var(--md-primary); font-family: inherit; font-weight: 500; }
@@ -198,20 +218,25 @@ body {
     <div class="status-layout">
       <div class="status-item">
         <div class="result-label">剩余额度</div>
-        <div class="status-value" id="userQuota">-</div>
+        <div class="status-value" id="userQuota" style="opacity:0.3;transition:opacity 0.3s;">-</div>
       </div>
       <div class="status-divider"></div>
       <div class="status-item">
         <div class="result-label">系统用户数</div>
-        <div class="status-value" id="totalUsers" style="color:var(--md-on-surface)">-</div>
+        <div class="status-value" id="totalUsers" style="color:var(--md-on-surface);opacity:0.3;transition:opacity 0.3s;">-</div>
       </div>
     </div>
-    <div class="status-hint" id="userStatusText">正在获取状态…</div>
+    <div class="status-hint" id="userStatusText">正在安全连接…</div>
+
+    <div class="progress-container" id="progressWrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
     <button class="filled-button" id="getBtn" disabled>
       <div class="spinner" id="spinner">
         <svg viewBox="25 25 50 50"><circle cx="50" cy="50" r="20"></circle></svg>
       </div>
-      <span id="btnText">加载中…</span>
+      <span id="btnText">正在初始化</span>
     </button>
   </section>
 
@@ -219,9 +244,15 @@ body {
     <h2 class="card-title">提取结果</h2>
     <div class="result-list">
       
-      <div class="result-item" style="padding: 12px 14px;">
-        <div class="result-label">来源通道</div>
-        <div class="result-text text-primary" id="outChannel">—</div>
+      <div class="result-item channel-row">
+        <div class="info">
+          <div class="result-label">来源通道</div>
+          <div class="result-text text-primary" id="outChannel">—</div>
+        </div>
+        <button class="vote-btn" id="voteBtn" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+          推荐
+        </button>
       </div>
 
       <div class="grid-row">
@@ -291,6 +322,7 @@ body {
   const snackbar = $('snackbar');
   
   let snackTimer, busy = false, userFp = '', isVipMode = false;
+  let currentChannelId = 0;
 
   function toast(msg) {
     snackbar.textContent = msg;
@@ -309,9 +341,7 @@ body {
       const fp = 'FP_' + Math.abs(hash).toString(16).toUpperCase();
       localStorage.setItem('user_fp', fp);
       return fp;
-    } catch(e) {
-      return 'FP_TEMP_' + Math.floor(Math.random() * 100000);
-    }
+    } catch(e) { return 'FP_TEMP_' + Math.floor(Math.random() * 100000); }
   }
 
   function copyText(text) {
@@ -346,6 +376,8 @@ body {
       const data = await res.json();
       if (data.ok) {
         $('totalUsers').textContent = data.totalUsers;
+        $('totalUsers').style.opacity = '1';
+        $('userQuota').style.opacity = '1';
         
         if (data.is_vip) {
           isVipMode = true;
@@ -354,9 +386,7 @@ body {
           $('userStatusText').textContent = `您今日已获取 ${data.used} 次 (无限额度)`;
           $('redeemCard').style.display = 'none';
           $('floatingAd').style.display = 'none';
-          
-          $('getBtn').disabled = false;
-          $('btnText').textContent = '获取';
+          $('getBtn').disabled = false; $('btnText').textContent = '获取';
         } else {
           isVipMode = false;
           $('userQuota').textContent = data.remaining;
@@ -378,14 +408,23 @@ body {
         }
       }
     } catch (e) {
-      console.warn("状态加载失败", e);
-      if ($('btnText').textContent === '加载中…') {
+      if ($('btnText').textContent === '正在初始化') {
         $('getBtn').disabled = false; $('btnText').textContent = '获取';
         $('userQuota').textContent = '?';
-        $('userStatusText').textContent = '状态获取失败，可尝试直接获取';
+        $('userStatusText').textContent = '无法连接服务器，请刷新页面';
       }
     }
   }
+
+  $('voteBtn').addEventListener('click', async () => {
+    if (!currentChannelId) return;
+    $('voteBtn').style.pointerEvents = 'none';
+    $('voteBtn').innerHTML = '已推荐';
+    try {
+      await fetch(`${WORKER_URL}/vote?channel=${currentChannelId}`);
+      toast('推荐成功，感谢反馈');
+    } catch(e) {}
+  });
 
   $('redeemBtn').addEventListener('click', async () => {
     const cdk = $('cdkInput').value.trim();
@@ -446,75 +485,131 @@ body {
     });
   }
 
-  async function doFetch(token = '') {
+  let progressInterval;
+  function startProgress() {
+    $('progressWrap').classList.add('show');
+    $('progressBar').style.width = '0%';
+    let p = 0;
+    progressInterval = setInterval(() => {
+      if (p < 30) p += 5;
+      else if (p < 60) p += 2;
+      else if (p < 90) p += 0.5;
+      $('progressBar').style.width = p + '%';
+    }, 200);
+  }
+
+  function stopProgress() {
+    clearInterval(progressInterval);
+    $('progressBar').style.width = '100%';
+    setTimeout(() => { $('progressWrap').classList.remove('show'); }, 300);
+  }
+
+  async function doFetchWithRetry(token = '', maxRetries = 5) {
     if (busy) return;
     busy = true;
     $('getBtn').disabled = true;
     $('spinner').classList.add('on');
-    $('btnText').textContent = '获取中…';
+    $('voteBtn').style.display = 'none';
     
     $('outChannel').textContent = '—';
     $('outUser').textContent = '—';
     $('outPass').textContent = '—';
     $('outCookie').textContent = '—';
     
-    log('正在请求服务器…');
-    try {
-      const url = `${WORKER_URL}/run?fp=${userFp}` + (token ? `&turnstile_token=${token}` : '');
-      const res = await fetch(url, { cache: 'no-store' });
-      const data = await res.json();
-      
-      if (!data.ok) {
-        if (data.need_turnstile) {
-          log('触发风控限制，需要验证', 'err');
-          $('spinner').classList.remove('on');
-          $('btnText').textContent = '请完成验证';
-          
-          const newToken = await showTurnstile();
-          busy = false;
-          if (newToken) { doFetch(newToken); }
-          else { $('getBtn').disabled = false; $('btnText').textContent = '获取'; }
-          return;
+    startProgress();
+
+    let attempt = 0;
+    let success = false;
+
+    while (attempt < maxRetries && !success) {
+      attempt++;
+      $('btnText').textContent = attempt === 1 ? '获取中…' : `重试中 (${attempt-1}/5)`;
+      if (attempt > 1) log(`尝试重新请求… (${attempt-1}/5)`, 'dim');
+      else log('正在请求服务器…');
+
+      try {
+        const url = `${WORKER_URL}/run?fp=${userFp}` + (token ? `&turnstile_token=${token}` : '');
+        const res = await fetch(url, { cache: 'no-store' });
+        const data = await res.json();
+        
+        if (!data.ok) {
+          if (data.need_turnstile) {
+            stopProgress();
+            log('触发风控限制，需要验证', 'err');
+            $('spinner').classList.remove('on');
+            $('btnText').textContent = '请完成验证';
+            
+            const newToken = await showTurnstile();
+            busy = false;
+            if (newToken) { doFetchWithRetry(newToken, 5); }
+            else { $('getBtn').disabled = false; $('btnText').textContent = '获取'; }
+            return;
+          }
+
+          if (data.error && data.error.includes('网络错误')) {
+            throw new Error(data.error);
+          }
+
+          if (data.error && (data.error.includes('额度') || data.error.includes('封禁') || data.error.includes('无可用通道'))) {
+            stopProgress();
+            log(`失败: ${data.error}`, 'err');
+            toast(data.error);
+            busy = false;
+            $('spinner').classList.remove('on');
+            if (data.error.includes('额度')) {
+              $('userQuota').textContent = '0'; $('userQuota').style.color = 'var(--md-error)'; $('btnText').textContent = '额度已用完';
+            } else {
+              $('getBtn').disabled = false; $('btnText').textContent = '获取';
+            }
+            return;
+          }
+
+          throw new Error(data.error || '服务器返回异常');
+        }
+
+        success = true;
+        stopProgress();
+        currentChannelId = data.channel;
+        $('outChannel').textContent = `通道 ${data.channel}`;
+        $('voteBtn').style.display = 'flex';
+        $('voteBtn').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg> 推荐`;
+        $('voteBtn').style.pointerEvents = 'auto';
+
+        $('outUser').textContent = data.username;
+        $('outPass').textContent = data.password;
+        $('outCookie').textContent = data.cookies || '解析失败';
+        
+        if (isVipMode) {
+          $('userQuota').textContent = '∞';
+          log(`获取成功！(无限额度)`, 'ok');
+        } else {
+          $('userQuota').textContent = data.remaining;
+          if (data.remaining === 0) {
+            $('userQuota').style.color = 'var(--md-error)'; $('btnText').textContent = '额度已用完';
+          }
+          log(`获取成功！剩余 ${data.remaining} 次`, 'ok');
         }
         
-        log(`失败: ${data.error}`, 'err');
-        toast(data.error);
-        if (data.error.includes('额度')) {
-          $('userQuota').textContent = '0'; $('userQuota').style.color = 'var(--md-error)'; $('btnText').textContent = '额度已用完';
-          return;
+        loadInfo(); 
+        toast('获取成功');
+      } catch (e) {
+        if (attempt >= maxRetries) {
+          stopProgress();
+          log(`网络异常: 重试${maxRetries}次后仍失败`, 'err');
+          toast('网络错误，请稍后再试');
+          $('getBtn').disabled = false; 
+          $('btnText').textContent = '获取';
+        } else {
+          await new Promise(r => setTimeout(r, 800));
         }
-        $('getBtn').disabled = false; $('btnText').textContent = '获取';
-        return;
       }
+    }
 
-      $('outChannel').textContent = `通道 ${data.channel}`;
-      $('outUser').textContent = data.username;
-      $('outPass').textContent = data.password;
-      $('outCookie').textContent = data.cookies || '解析失败';
-      
-      if (isVipMode) {
-        $('userQuota').textContent = '∞';
-        log(`获取成功！(无限额度)`, 'ok');
-      } else {
-        $('userQuota').textContent = data.remaining;
-        if (data.remaining === 0) {
-          $('userQuota').style.color = 'var(--md-error)'; $('btnText').textContent = '额度已用完';
-        }
-        log(`获取成功！剩余 ${data.remaining} 次`, 'ok');
-      }
-      
-      loadInfo(); 
-      toast('获取成功');
-    } catch (e) {
-      log(`网络异常: ${e.message}`, 'err');
-      toast('网络异常');
-    } finally {
-      busy = false;
-      $('spinner').classList.remove('on');
-      if ($('btnText').textContent === '获取中…') {
-        $('getBtn').disabled = false;
-        $('btnText').textContent = '获取';
-      }
+    busy = false;
+    $('spinner').classList.remove('on');
+    if ($('btnText').textContent.includes('重试中')) {
+      $('getBtn').disabled = false;
+      $('btnText').textContent = '获取';
     }
   }
 
@@ -525,14 +620,19 @@ body {
       userFp = 'FP_FALLBACK_' + Date.now();
     }
     
-    $('getBtn').disabled = false;
-    $('btnText').textContent = '获取';
-    $('userStatusText').textContent = '就绪，点击获取';
-    $('userQuota').textContent = '?';
-    
-    $('getBtn').addEventListener('click', () => doFetch());
+    $('userQuota').textContent = '-';
+    $('totalUsers').textContent = '-';
+    $('userStatusText').textContent = '正在安全连接…';
     
     await loadInfo(); 
+    
+    if ($('btnText').textContent === '正在初始化') {
+      $('getBtn').disabled = false;
+      $('btnText').textContent = '获取';
+      $('userStatusText').textContent = '就绪';
+    }
+
+    $('getBtn').addEventListener('click', () => doFetchWithRetry());
   })();
 
   const mq = window.matchMedia('(prefers-color-scheme: dark)');
