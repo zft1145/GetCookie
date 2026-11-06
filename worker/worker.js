@@ -49,7 +49,6 @@ function verifySignature(url, sign) {
   return hashStr(str) === sign;
 }
 
-// 动态计算额度
 function calcDynamicLimit(isVip, count) {
   if (!isVip) return 20;
   if (count >= 30) return 100;
@@ -146,12 +145,13 @@ export default {
         if (clientKey !== adminKey) return json({ ok: false, error: "密钥错误" }, 403, origin);
 
         if (request.method === "GET") {
-          const [channelsStr, usersStr, configStr] = await Promise.all([kv.get("channels"), kv.get("users"), kv.get("config")]);
+          const [channelsStr, usersStr, configStr, statsStr] = await Promise.all([kv.get("channels"), kv.get("users"), kv.get("config"), kv.get("global_daily_stats")]);
           let channels = JSON.parse(channelsStr || "[]");
           let users = JSON.parse(usersStr || "{}");
           let config = JSON.parse(configStr || "{}");
+          let stats = JSON.parse(statsStr || "{}");
           const safeChannels = channels.map(c => ({ ...c, key: deobfuscate(c.key).slice(0, 10) + "..." }));
-          return json({ ok: true, channels: safeChannels, users, config }, 200, origin);
+          return json({ ok: true, channels: safeChannels, users, config, stats }, 200, origin);
         }
 
         if (request.method === "POST") {
@@ -196,9 +196,8 @@ export default {
         return json({ ok: false, error: "Invalid Request" }, 400, origin);
       }
 
-      // 防御：蜜罐 & 环境检测
       if (url.searchParams.get("bot") === "1" || url.searchParams.get("honeypot") === "1") {
-        return json({ ok: true, status: "ok", cookies: "fake_data_silent_ban", remaining: 0, used: 0 }, 200, origin);
+        return json({ ok: true, status: "ok", cookies: "fake_data_silent_ban", remaining: 0, used: 0, total_today: 0 }, 200, origin);
       }
 
       const sign = url.searchParams.get("sign");
@@ -207,12 +206,15 @@ export default {
       const fingerprint = url.searchParams.get("fp");
       if (!fingerprint) return json({ ok: false, error: "缺少参数" }, 400, origin);
 
-      const [usersStr, channelsStr, configStr] = await Promise.all([kv.get("users"), kv.get("channels"), kv.get("config")]);
+      const [usersStr, channelsStr, configStr, statsStr] = await Promise.all([kv.get("users"), kv.get("channels"), kv.get("config"), kv.get("global_daily_stats")]);
       let users = JSON.parse(usersStr || "{}");
       let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", vip: false, username: "" };
       let config = JSON.parse(configStr || "{}");
+      let stats = JSON.parse(statsStr || "{}");
+      let today = getTodayStr();
 
-      if (user.date !== getTodayStr()) { user.count = 0; user.date = getTodayStr(); }
+      if (stats.date !== today) { stats.date = today; stats.count = 0; }
+      if (user.date !== today) { user.count = 0; user.date = today; }
       const limit = calcDynamicLimit(user.vip, user.count);
 
       if (path === "/info") {
@@ -225,6 +227,8 @@ export default {
           limit: limit,
           status: user.status,
           is_vip: user.vip || false,
+          total_today: stats.count || 0,
+          total_users: Object.keys(users).length,
           turnstile_site_key: config.turnstile_site_key || ""
         }, 200, origin);
       }
@@ -244,6 +248,22 @@ export default {
       if (user.status === "banned") return json({ ok: false, error: "已被封禁" }, 403, origin);
       if (user.count >= limit) return json({ ok: false, error: "额度已用完" }, 429, origin);
 
+      if (path === "/vote") {
+        const channelId = parseInt(url.searchParams.get("channel"), 10);
+        const action = url.searchParams.get("action");
+        if (!channelId || !action) return json({ ok: false, error: "参数错误" }, 400, origin);
+        let channels = JSON.parse(channelsStr || "[]");
+        channels = channels.map(c => {
+           if (c.id === channelId) {
+              if (action === 'up') c.votes = (c.votes || 0) + 1;
+              if (action === 'down') c.votes = (c.votes || 0) - 1;
+           }
+           return c;
+        });
+        await kv.put("channels", JSON.stringify(channels));
+        return json({ ok: true }, 200, origin);
+      }
+
       if (path === "/claim") {
         let channels = JSON.parse(channelsStr || "[]");
         const activeChannels = channels.filter(c => c.active);
@@ -262,7 +282,10 @@ export default {
         users[fingerprint] = user;
         await kv.put("users", JSON.stringify(users));
 
-        return json({ ok: true, channel: channel.id, channel_key: realKey, username: claimR.data.username, password: claimR.data.password, remaining: limit - user.count }, 200, origin);
+        stats.count += 1;
+        await kv.put("global_daily_stats", JSON.stringify(stats));
+
+        return json({ ok: true, channel: channel.id, channel_key: realKey, username: claimR.data.username, password: claimR.data.password, remaining: limit - user.count, total_today: stats.count }, 200, origin);
       }
 
       if (path === "/convert") {
