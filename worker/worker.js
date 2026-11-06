@@ -42,13 +42,15 @@ function verifySignature(url, sign) {
   if (!sign) return false;
   const t = parseInt(url.searchParams.get("t") || "0", 10);
   if (Date.now() - t > 300000) return false;
+  
   const params = new URLSearchParams(url.search);
   params.delete("sign");
   const str = params.toString() + SIGN_SECRET;
   return hashStr(str) === sign;
 }
 
-function getDynamicLimit(isVip, count) {
+// 动态计算额度
+function calcDynamicLimit(isVip, count) {
   if (!isVip) return 20;
   if (count >= 30) return 100;
   if (count >= 15) return 81;
@@ -127,7 +129,7 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders(origin) });
 
     try {
-      if (!env || !env['4399kv']) return json({ ok: false, error: "服务器错误：未绑定 KV" }, 500, origin);
+      if (!env || !env['4399kv']) return json({ ok: false, error: "服务器错误" }, 500, origin);
       const kv = env['4399kv'];
 
       if (path === "/admin/api") {
@@ -194,14 +196,13 @@ export default {
         return json({ ok: false, error: "Invalid Request" }, 400, origin);
       }
 
+      // 防御：蜜罐 & 环境检测
       if (url.searchParams.get("bot") === "1" || url.searchParams.get("honeypot") === "1") {
-        return json({ ok: true, status: "ok", cookies: "fake_data", remaining: 0, used: 0 }, 200, origin);
+        return json({ ok: true, status: "ok", cookies: "fake_data_silent_ban", remaining: 0, used: 0 }, 200, origin);
       }
 
       const sign = url.searchParams.get("sign");
-      if (!verifySignature(url, sign)) {
-        return json({ ok: false, error: "网络异常，请刷新重试" }, 403, origin);
-      }
+      if (!verifySignature(url, sign)) return json({ ok: false, error: "网络异常，请刷新重试" }, 403, origin);
 
       const fingerprint = url.searchParams.get("fp");
       if (!fingerprint) return json({ ok: false, error: "缺少参数" }, 400, origin);
@@ -212,14 +213,19 @@ export default {
       let config = JSON.parse(configStr || "{}");
 
       if (user.date !== getTodayStr()) { user.count = 0; user.date = getTodayStr(); }
-      
-      const limit = getDynamicLimit(user.vip, user.count);
+      const limit = calcDynamicLimit(user.vip, user.count);
 
       if (path === "/info") {
         return json({
-          ok: true, uid: fingerprint, username: user.username || "",
-          remaining: Math.max(0, limit - user.count), used: user.count, limit: limit,
-          status: user.status, is_vip: user.vip || false, turnstile_site_key: config.turnstile_site_key || ""
+          ok: true,
+          uid: fingerprint,
+          username: user.username || "",
+          remaining: Math.max(0, limit - user.count),
+          used: user.count,
+          limit: limit,
+          status: user.status,
+          is_vip: user.vip || false,
+          turnstile_site_key: config.turnstile_site_key || ""
         }, 200, origin);
       }
 
@@ -227,10 +233,8 @@ export default {
         const token = url.searchParams.get("turnstile_token");
         const username = url.searchParams.get("username");
         if (!token || !username) return json({ ok: false, error: "参数不全" }, 400, origin);
-        
         const isValid = await verifyTurnstile(token, config.turnstile_secret);
-        if (!isValid) return json({ ok: false, error: "人机验证失败" }, 403, origin);
-
+        if (!isValid) return json({ ok: false, error: "验证失败" }, 403, origin);
         user.username = username;
         users[fingerprint] = user;
         await kv.put("users", JSON.stringify(users));
@@ -238,7 +242,7 @@ export default {
       }
 
       if (user.status === "banned") return json({ ok: false, error: "已被封禁" }, 403, origin);
-      if (user.count >= limit) return json({ ok: false, error: "额度已用完，请明天再来" }, 429, origin);
+      if (user.count >= limit) return json({ ok: false, error: "额度已用完" }, 429, origin);
 
       if (path === "/claim") {
         let channels = JSON.parse(channelsStr || "[]");
@@ -272,26 +276,16 @@ export default {
           if (active.length > 0) key = deobfuscate(active[0].key);
         }
 
-        try {
-          const convR = await doConvertWithRetry(key, username, password);
-          if (!convR.data || convR.data.code !== 1) {
-            if (refund) {
-              user.count = Math.max(0, user.count - 0.5);
-              users[fingerprint] = user;
-              await kv.put("users", JSON.stringify(users));
-            }
-            return json({ ok: false, error: "转换失败，已退还0.5额度" }, 200, origin);
-          }
-          return json({ ok: true, cookies: pickCookies(convR.data) }, 200, origin);
-        } catch (e) {
-          // 捕获超时等异常，执行退款
-          if (refund) {
-            user.count = Math.max(0, user.count - 0.5);
-            users[fingerprint] = user;
-            await kv.put("users", JSON.stringify(users));
-          }
-          return json({ ok: false, error: "网络超时，已退还0.5额度" }, 200, origin);
+        const convR = await doConvertWithRetry(key, username, password);
+        if (!convR.data || convR.data.code !== 1) {
+           if (refund) {
+             user.count = Math.max(0, user.count - 0.5);
+             users[fingerprint] = user;
+             await kv.put("users", JSON.stringify(users));
+           }
+           return json({ ok: false, error: "转换失败，请稍后重试" }, 200, origin);
         }
+        return json({ ok: true, cookies: pickCookies(convR.data) }, 200, origin);
       }
 
       return json({ ok: false, error: "not found" }, 404, origin);
