@@ -10,6 +10,7 @@
     snackTimer = setTimeout(() => $('snackbar').classList.remove('show'), 2200);
   }
 
+  // 动态计算额度上限
   function calcDynamicLimit(isVip, count) {
     if (!isVip) return 20;
     if (count >= 30) return 100;
@@ -41,7 +42,7 @@
       $('channelList').innerHTML = data.channels.map(c => `
         <div class="admin-item">
           <div>
-            <strong>${c.name}</strong> <span style="font-size:12px;color:${c.votes>=0?'var(--md-success)':'var(--md-error)'}">(票数: ${c.votes||0})</span>
+            <strong>${c.name}</strong> <span style="font-size:13px;color:${c.votes>=0?'var(--md-success)':'var(--md-error)'}">(票数: ${c.votes||0})</span>
             <br><span style="font-size:12px;color:var(--md-on-surface-variant)">${c.key}</span>
           </div>
           <button class="copy-btn" onclick="toggleChannel(${c.id}, ${!c.active})" style="color:${c.active?'var(--md-success)':'var(--md-error)'}">
@@ -62,13 +63,13 @@
       } else {
         $('userList').innerHTML = userKeys.map(fp => {
           const u = data.users[fp];
-          const vipBadge = u.vip ? `<span style="color:#FFF;background:var(--md-primary);font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;">特权</span>` : '';
+          const vipBadge = u.vip ? `<span style="color:#FFF;background:var(--md-primary);font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;">无限</span>` : '';
           const limit = calcDynamicLimit(u.vip, u.count);
           return `
           <div class="admin-item">
             <div>
               <strong>${u.username || '未绑定'} (${fp}) ${vipBadge}</strong><br>
-              <span style="font-size:12px;color:var(--md-on-surface-variant)">已用: ${u.count} | 动态上限: ${limit}</span>
+              <span style="font-size:13px;color:var(--md-on-surface-variant)">今日已用: ${u.count} / 动态上限: ${limit}</span>
             </div>
             <div style="display:flex; gap:4px;">
               <button class="copy-btn" onclick="resetUserQuota('${fp}')" style="color:var(--md-primary)">重置</button>
@@ -136,36 +137,17 @@
     toast('配置已保存');
   });
 
-  $('settingsBtn').addEventListener('click', () => $('settingsModal').classList.add('show'));
-  $('closeSettingsBtn').addEventListener('click', () => $('settingsModal').classList.remove('show'));
+  if (ADMIN_KEY) loadData();
+  else $('authCard').style.display = 'block';
 
-  $('themeSetting').checked = document.documentElement.dataset.theme === 'dark';
-  $('themeSetting').addEventListener('change', (e) => {
-    const theme = e.target.checked ? 'dark' : 'light';
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem('md_theme', theme);
+    $('iconSun').style.display = theme === 'dark' ? 'none' : '';
+    $('iconMoon').style.display = theme === 'dark' ? '' : 'none';
+  }
+  applyTheme(mq.matches ? 'dark' : 'light');
+  $('themeBtn').addEventListener('click', () => {
+    applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
   });
-
-  window.setColor = (color) => {
-    document.documentElement.dataset.color = color;
-    localStorage.setItem('md_color', color);
-    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
-    $('dot-' + color).classList.add('active');
-  };
-
-  (function init() {
-    const savedTheme = localStorage.getItem('md_theme');
-    if (savedTheme) {
-      document.documentElement.dataset.theme = savedTheme;
-    } else {
-      document.documentElement.dataset.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    $('themeSetting').checked = document.documentElement.dataset.theme === 'dark';
-
-    const savedColor = localStorage.getItem('md_color') || 'purple';
-    setColor(savedColor);
-
-    if (ADMIN_KEY) loadData();
-    else $('authCard').style.display = 'block';
-  })();
 })();
