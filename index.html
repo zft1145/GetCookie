@@ -6,7 +6,6 @@
 <title>XTZ Cookie</title>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
-/* ================= MD3 Color Tokens ================= */
 :root {
   --md-primary: #6750A4; --md-on-primary: #FFFFFF;
   --md-surface: #FEF7FF; --md-surface-container-lowest: #FFFFFF;
@@ -73,18 +72,10 @@ html[data-theme="dark"][data-color="orange"] {
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { 
-  margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; 
-  background-color: var(--md-surface); color: var(--md-on-surface); 
-  -webkit-font-smoothing: antialiased; 
-  padding-bottom: 140px; /* 彻底解决底部遮挡 */
-  transition: background-color 0.3s, color 0.3s; 
-}
+body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; background-color: var(--md-surface); color: var(--md-on-surface); -webkit-font-smoothing: antialiased; padding-bottom: calc(80px + env(safe-area-inset-bottom)); transition: background-color 0.3s, color 0.3s; }
 
-/* 顶栏美化 */
-.app-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; height: 64px; padding: 0 16px; background-color: var(--md-surface); transition: background 0.3s; }
-.app-bar-logo { width: 28px; height: 28px; margin-right: 12px; color: var(--md-primary); }
-.app-bar h1 { margin: 0; font-size: 22px; font-weight: 800; flex: 1; letter-spacing: -0.5px; }
+.app-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; height: 64px; padding: 0 16px; background-color: var(--md-surface); }
+.app-bar h1 { margin: 0; font-size: 26px; font-weight: 700; flex: 1; letter-spacing: -0.5px; background: linear-gradient(135deg, var(--md-primary), #8E7CC3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 .icon-button { width: 48px; height: 48px; border: none; border-radius: 50%; background: transparent; color: var(--md-on-surface-variant); display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: -12px; transition: background 0.2s, transform 0.2s; }
 .icon-button:active { transform: scale(0.85); background: var(--md-surface-container-highest); }
 
@@ -99,18 +90,17 @@ body {
 
 .card-title { margin: 0 0 16px 0; font-size: 16px; font-weight: 500; color: var(--md-on-surface); }
 
-/* 顶部三栏布局 */
-.status-layout { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.status-layout { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .status-item { text-align: center; flex: 1; }
-.status-value { color: var(--md-primary); font-size: 36px; font-weight: 700; line-height: 1.1; margin: 4px 0; font-variant-numeric: tabular-nums; }
-.status-divider { width: 1px; height: 36px; background-color: var(--md-outline-variant); opacity: 0.5; flex-shrink: 0; }
-.status-hint { text-align: center; color: var(--md-on-surface-variant); font-size: 14px; margin-bottom: 20px; font-weight: 500;}
+.status-value { color: var(--md-primary); font-size: 32px; font-weight: 700; line-height: 1.1; margin: 4px 0; font-variant-numeric: tabular-nums; }
+.status-divider { width: 1px; height: 40px; background-color: var(--md-outline-variant); opacity: 0.5; }
+.status-hint { text-align: center; color: var(--md-on-surface-variant); font-size: 14px; margin-bottom: 20px; }
 
 .progress-container { height: 6px; width: 100%; background-color: var(--md-surface-container-highest); border-radius: 3px; margin-bottom: 20px; overflow: hidden; display: none; }
 .progress-container.show { display: block; }
 .progress-bar { height: 100%; width: 0%; background-color: var(--md-primary); transition: width 0.3s ease; border-radius: 3px; }
 
-.filled-button { display: flex; align-items: center; justify-content: center; width: 100%; height: 56px; border: none; border-radius: 100px; background: var(--md-primary); color: var(--md-on-primary); font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1.2), opacity 0.2s, background-color 0.3s; }
+.filled-button { display: flex; align-items: center; justify-content: center; width: 100%; height: 56px; border: none; border-radius: 100px; background: var(--md-primary); color: var(--md-on-primary); font-size: 16px; font-weight: 500; cursor: pointer; transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1.2), opacity 0.2s, background-color 0.3s; }
 .filled-button:active { transform: scale(0.94); }
 .filled-button:disabled { background: var(--md-surface-container-highest); color: var(--md-on-surface-variant); opacity: 0.6; transform: none; }
 
@@ -123,25 +113,24 @@ body {
 
 .result-list { display: flex; flex-direction: column; gap: 12px; }
 .result-item { display: flex; flex-direction: column; padding: 16px; background: var(--md-surface-container); border-radius: 20px; position: relative; transition: background 0.3s; }
+
+.channel-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; }
+.channel-info { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; color: var(--md-primary); }
+.vote-group { display: flex; gap: 4px; }
+.vote-btn { background: transparent; border: none; padding: 6px; border-radius: 50%; color: var(--md-on-surface-variant); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+.vote-btn:active { background: var(--md-surface-container-high); }
+.vote-btn svg { width: 20px; height: 20px; }
+
 .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .result-label { color: var(--md-on-surface-variant); font-size: 12px; margin-bottom: 4px; }
 .result-text { font-family: ui-monospace, monospace; font-size: 15px; color: var(--md-on-surface); word-break: break-all; padding-right: 24px; }
-
-/* 通道推荐按钮 */
-.channel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.channel-info { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--md-primary); }
-.vote-group { display: flex; gap: 4px; }
-.vote-btn { background: transparent; border: none; padding: 6px; border-radius: 50%; color: var(--md-on-surface-variant); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, transform 0.1s; }
-.vote-btn:active { background: var(--md-surface-container-highest); transform: scale(0.85); }
-.vote-btn svg { width: 18px; height: 18px; }
-
 .copy-icon-btn { position: absolute; right: 12px; bottom: 12px; padding: 6px; border: none; border-radius: 50%; background: transparent; color: var(--md-primary); cursor: pointer; transition: background 0.2s, transform 0.1s; }
 .copy-icon-btn:active { background: var(--md-surface-container-highest); transform: scale(0.85); }
 .copy-icon-btn svg { width: 18px; height: 18px; }
 
 .cookie-block { display: flex; flex-direction: column; background: var(--md-surface-container-high); border-radius: 20px; padding: 16px; transition: background 0.3s; }
 .cookie-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.text-button { padding: 8px 16px; border: none; border-radius: 100px; background: transparent; color: var(--md-primary); font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.2s; }
+.text-button { padding: 8px 16px; border: none; border-radius: 100px; background: transparent; color: var(--md-primary); font-weight: 500; font-size: 14px; cursor: pointer; transition: background 0.2s; }
 .text-button:active { background: var(--md-surface-container-highest); }
 .cookie-content { font-family: ui-monospace, monospace; font-size: 13px; line-height: 1.6; color: var(--md-on-surface-variant); word-break: break-all; white-space: pre-wrap; max-height: 180px; overflow-y: auto; background: var(--md-surface-container-lowest); padding: 16px; border-radius: 16px; transition: background 0.3s; }
 
@@ -152,60 +141,66 @@ html[data-theme="dark"] .log-ok { color: #B6F09C; }
 
 .history-search { width: 100%; padding: 12px 16px; border-radius: 16px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container); color: var(--md-on-surface); margin-bottom: 16px; font-size: 14px; transition: border-color 0.2s, background 0.3s; }
 .history-search:focus { outline: none; border-color: var(--md-primary); }
-.history-list { display: flex; flex-direction: column; gap: 16px; max-height: 400px; overflow-y: auto; }
+.history-list { display: flex; flex-direction: column; gap: 16px; max-height: 400px; overflow-y: auto; padding-right: 4px; }
 .history-item { background: var(--md-surface-container); padding: 16px; border-radius: 20px; font-size: 14px; display: flex; flex-direction: column; gap: 10px; transition: background 0.3s; }
 .history-time { color: var(--md-on-surface-variant); font-size: 12px; }
 .history-data-row { font-family: ui-monospace, monospace; word-break: break-all; }
 .history-data-row span { color: var(--md-on-surface-variant); font-family: 'Roboto', sans-serif; }
-.history-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+.history-actions { display: flex; gap: 8px; justify-content: flex-end; }
 .hist-btn { background: var(--md-surface-container-highest); color: var(--md-on-surface); border: none; padding: 8px 16px; border-radius: 100px; font-size: 13px; cursor: pointer; transition: background 0.2s, transform 0.1s; }
 .hist-btn:active { transform: scale(0.92); }
 .hist-btn.primary { background: var(--md-primary); color: var(--md-on-primary); }
 
-/* 底部抽屉与弹窗 */
-.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-.modal-overlay.center-mode { align-items: center; }
+/* 修复历史记录中的曲奇框样式，避免被遮挡 */
+.history-item .cookie-block { background: var(--md-surface-container-high); border-radius: 16px; padding: 12px; overflow: hidden; }
+.history-item .cookie-content { max-height: 80px; padding: 12px; border-radius: 12px; font-size: 12px; }
+
+.watermark { position: fixed; top: 16px; right: 108px; z-index: 10; background: rgba(103, 80, 164, 0.15); color: var(--md-primary); padding: 6px 12px; border-radius: 100px; font-size: 11px; font-weight: 600; text-decoration: none; opacity: 0.6; transition: opacity 0.2s; }
+.watermark:active { opacity: 1; }
+
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
 .modal-overlay.show { opacity: 1; pointer-events: auto; }
-.modal-box { background: var(--md-surface-container-high); border-radius: 32px 32px 0 0; padding: 28px 24px 40px; width: 100%; max-width: 600px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1.2), background 0.3s; }
-.modal-overlay.center-mode .modal-box { border-radius: 28px; width: 90%; max-width: 340px; padding: 24px; transform: scale(0.9); }
-.modal-overlay.show .modal-box { transform: translateY(0); }
-.modal-overlay.center-mode.show .modal-box { transform: scale(1); }
-.modal-title { margin: 0 0 16px 0; font-size: 20px; font-weight: 700; text-align: center;}
+.modal-box { background: var(--md-surface-container-high); border-radius: 32px; padding: 28px; width: 90%; max-width: 340px; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1.2), background 0.3s; }
+.modal-overlay.show .modal-box { transform: scale(1); }
+.modal-title { margin: 0 0 16px 0; font-size: 20px; font-weight: 500; text-align: center;}
 .input-group { margin-bottom: 16px; }
 .input-group input { width: 100%; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container); color: var(--md-on-surface); font-family: inherit; font-size: 15px; transition: border-color 0.2s, background 0.3s; }
 .input-group input:focus { outline: none; border-color: var(--md-primary); }
 
-/* 设置列表 */
-.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--md-outline-variant); }
-.setting-row:last-child { border-bottom: none; padding-bottom: 0; }
-.setting-row span { font-size: 16px; font-weight: 500; }
-.switch { position: relative; display: inline-block; width: 52px; height: 32px; }
+.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; font-size: 15px; border-bottom: 1px solid var(--md-outline-variant); }
+.setting-row:last-child { border-bottom: none; }
+.switch { position: relative; display: inline-block; width: 48px; height: 28px; }
 .switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--md-surface-container-highest); transition: .4s; border-radius: 34px; }
-.slider:before { position: absolute; content: ""; height: 24px; width: 24px; left: 4px; bottom: 4px; background-color: var(--md-outline-variant); transition: .4s; border-radius: 50%; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--md-outline-variant); transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: var(--md-surface); transition: .4s; border-radius: 50%; }
 input:checked + .slider { background-color: var(--md-primary); }
 input:checked + .slider:before { transform: translateX(20px); background-color: var(--md-on-primary); }
 
-.color-picker { display: flex; gap: 12px; }
-.color-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: transform 0.2s; }
+.color-picker { display: flex; gap: 12px; margin-top: 8px; }
+.color-dot { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.2s; }
 .color-dot:active { transform: scale(0.8); }
 .color-dot.active { border-color: var(--md-on-surface); }
-.c-purple { background: #6750A4; }
-.c-blue { background: #0061A4; }
-.c-green { background: #006C4C; }
-.c-orange { background: #8F4C00; }
+.color-purple { background: #6750A4; }
+.color-blue { background: #0061A4; }
+.color-green { background: #006C4C; }
+.color-orange { background: #8F4C00; }
 
 .honeypot-field { position: absolute; left: -9999px; top: -9999px; opacity: 0; pointer-events: none; }
+
 .snackbar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--md-surface-container-highest); color: var(--md-on-surface); padding: 14px 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 14px; opacity: 0; pointer-events: none; transition: transform 0.3s, opacity 0.3s, background 0.3s; z-index: 1000; }
 .snackbar.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 </style>
 </head>
 <body>
 
+<a href="https://qm.qq.com/q/Qa24XBm0w4" target="_blank" class="watermark">By VHax</a>
+
 <header class="app-bar">
-  <svg class="app-bar-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
   <h1>XTZ Cookie</h1>
-  <button class="icon-button" id="settingsBtn">
+  <button class="icon-button" id="profileBtn">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+  </button>
+  <button class="icon-button" id="settingsBtn" style="margin-right:0;">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
   </button>
 </header>
@@ -216,17 +211,17 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   <section class="card">
     <div class="status-layout">
       <div class="status-item">
-        <div class="result-label">剩余次数</div>
+        <div class="result-label">可用次数</div>
         <div class="status-value" id="userQuota">-</div>
       </div>
       <div class="status-divider"></div>
       <div class="status-item">
-        <div class="result-label">今日获取量</div>
-        <div class="status-value" id="totalToday" style="color:var(--md-on-surface)">-</div>
+        <div class="result-label">今日总消耗</div>
+        <div class="status-value" id="totalUsed" style="color:var(--md-on-surface)">-</div>
       </div>
       <div class="status-divider"></div>
       <div class="status-item">
-        <div class="result-label">用户总数</div>
+        <div class="result-label">用户数量</div>
         <div class="status-value" id="totalUsers" style="color:var(--md-on-surface)">-</div>
       </div>
     </div>
@@ -241,17 +236,15 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   <section class="card">
     <h2 class="card-title">提取结果</h2>
     <div class="result-list">
-      <div class="result-item" style="padding: 12px 16px;">
-        <div class="channel-header">
-          <div class="channel-info" id="outChannel">来源通道 —</div>
-          <div class="vote-group" id="voteGroup" style="display:none;">
-            <button class="vote-btn" onclick="vote('up')" title="推荐">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-            </button>
-            <button class="vote-btn" onclick="vote('down')" title="不推荐">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
-            </button>
-          </div>
+      <div class="result-item channel-row">
+        <div class="channel-info" id="outChannel">来源通道 —</div>
+        <div class="vote-group" id="voteGroup" style="display:none;">
+          <button class="vote-btn" onclick="vote('up')" title="推荐">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+          </button>
+          <button class="vote-btn" onclick="vote('down')" title="不推荐">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
+          </button>
         </div>
       </div>
       <div class="grid-row">
@@ -268,7 +261,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
       </div>
       <div class="cookie-block">
         <div class="cookie-header">
-          <div class="result-label" style="margin:0;font-weight:600;font-size:14px;color:var(--md-on-surface)">Cookie 数据</div>
+          <div class="result-label" style="margin:0;font-weight:500;font-size:14px;color:var(--md-on-surface)">Cookie 数据</div>
           <button class="text-button" data-copy="outCookie">复制</button>
         </div>
         <div class="cookie-content" id="outCookie">—</div>
@@ -288,8 +281,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   </section>
 </main>
 
-<!-- 个人中心 -->
-<div class="modal-overlay center-mode" id="profileModal">
+<div class="modal-overlay" id="profileModal">
   <div class="modal-box">
     <h2 class="modal-title">个人中心</h2>
     <div style="display:flex; flex-direction:column; gap:12px; margin-bottom: 24px;">
@@ -312,12 +304,41 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
         <div class="result-text" id="profRole">普通用户</div>
       </div>
     </div>
-    <button class="filled-button" id="closeProfileBtn" style="height:48px; font-size:15px;">关闭</button>
+    <button class="filled-button" id="closeProfileBtn">关闭</button>
   </div>
 </div>
 
-<!-- 首次绑定 -->
-<div class="modal-overlay center-mode" id="bindModal">
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-box">
+    <h2 class="modal-title">设置</h2>
+    <div class="setting-row">
+      <span>深色模式</span>
+      <label class="switch">
+        <input type="checkbox" id="darkModeToggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="setting-row" style="flex-direction: column; align-items: flex-start;">
+      <span style="margin-bottom: 8px;">主题配色</span>
+      <div class="color-picker">
+        <div class="color-dot color-purple" data-color="purple"></div>
+        <div class="color-dot color-blue" data-color="blue"></div>
+        <div class="color-dot color-green" data-color="green"></div>
+        <div class="color-dot color-orange" data-color="orange"></div>
+      </div>
+    </div>
+    <div class="setting-row">
+      <span>忽略推荐 (纯随机)</span>
+      <label class="switch">
+        <input type="checkbox" id="ignoreVotesSetting">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <button class="filled-button" id="closeSettingsBtn" style="margin-top: 24px; height: 48px; font-size: 14px;">确定</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="bindModal">
   <div class="modal-box">
     <h2 class="modal-title">首次访问</h2>
     <p style="color:var(--md-on-surface-variant);font-size:14px;margin:0 0 16px 0;text-align:center;">请输入用户名并完成验证</p>
@@ -325,32 +346,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
       <input type="text" id="bindUsername" placeholder="输入你的专属用户名">
     </div>
     <div id="turnstile-container" style="display:flex;justify-content:center;margin:16px 0;"></div>
-    <button class="filled-button" id="bindBtn" style="height:48px; font-size:15px;">确认绑定</button>
-  </div>
-</div>
-
-<!-- 设置抽屉 -->
-<div class="modal-overlay" id="settingsModal">
-  <div class="modal-box">
-    <h2 class="modal-title" style="margin-bottom:24px;">设置</h2>
-    <div class="setting-row">
-      <span>深色模式</span>
-      <label class="switch"><input type="checkbox" id="themeSetting"><span class="slider"></span></label>
-    </div>
-    <div class="setting-row">
-      <span>忽略推荐 (完全随机)</span>
-      <label class="switch"><input type="checkbox" id="ignoreVotesSetting"><span class="slider"></span></label>
-    </div>
-    <div class="setting-row">
-      <span>界面配色</span>
-      <div class="color-picker">
-        <div class="color-dot c-purple" onclick="setColor('purple')" id="dot-purple"></div>
-        <div class="color-dot c-blue" onclick="setColor('blue')" id="dot-blue"></div>
-        <div class="color-dot c-green" onclick="setColor('green')" id="dot-green"></div>
-        <div class="color-dot c-orange" onclick="setColor('orange')" id="dot-orange"></div>
-      </div>
-    </div>
-    <button class="filled-button" id="closeSettingsBtn" style="height:48px; margin-top:24px; font-size:15px;">完成</button>
+    <button class="filled-button" id="bindBtn" style="height:48px; font-size:14px;">确认绑定</button>
   </div>
 </div>
 
