@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>4399 账号与 Cookies</title>
+<title>XTZ Cookie</title>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
 :root {
-  --md-primary: #6750A4; 
+  --md-primary: #005AC1; 
   --md-on-primary: #FFFFFF;
-  --md-primary-container: #EADDFF; 
-  --md-on-primary-container: #21005D;
+  --md-primary-container: #D8E2FF; 
+  --md-on-primary-container: #001A41;
   --md-surface: #FEF7FF; 
   --md-surface-container-lowest: #FFFFFF;
   --md-surface-container-low: #F7F2FA;
@@ -24,10 +24,10 @@
   --md-success: #386A20;
 }
 html[data-theme="dark"] {
-  --md-primary: #D0BCFF; 
-  --md-on-primary: #381E72;
-  --md-primary-container: #4F378B; 
-  --md-on-primary-container: #EADDFF;
+  --md-primary: #ADC6FF; 
+  --md-on-primary: #002E69;
+  --md-primary-container: #004494; 
+  --md-on-primary-container: #D8E2FF;
   --md-surface: #141218; 
   --md-surface-container-lowest: #0F0D13;
   --md-surface-container-low: #1D1B20;
@@ -43,12 +43,26 @@ html[data-theme="dark"] {
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; background-color: var(--md-surface); color: var(--md-on-surface); -webkit-font-smoothing: antialiased; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
 
+/* 连贯动画 */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.card { 
+  background-color: var(--md-surface-container-low); 
+  border-radius: 28px; padding: 24px; transition: background 0.3s; 
+  animation: slideUp 0.5s cubic-bezier(0.2, 0, 0, 1) forwards; opacity: 0;
+}
+.card:nth-child(1) { animation-delay: 0.05s; }
+.card:nth-child(2) { animation-delay: 0.1s; }
+.card:nth-child(3) { animation-delay: 0.15s; }
+.card:nth-child(4) { animation-delay: 0.2s; }
+
 .app-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; height: 64px; padding: 0 16px; background-color: var(--md-surface); }
 .app-bar h1 { margin: 0; font-size: 22px; font-weight: 500; flex: 1; letter-spacing: 0; }
 .icon-button { width: 48px; height: 48px; border: none; border-radius: 50%; background: transparent; color: var(--md-on-surface-variant); display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: -12px; }
 
 .container { max-width: 600px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
-.card { background-color: var(--md-surface-container-low); border-radius: 28px; padding: 24px; transition: background 0.3s; }
 .card-title { margin: 0 0 16px 0; font-size: 16px; font-weight: 500; color: var(--md-on-surface); }
 
 .status-layout { display: flex; align-items: center; justify-content: center; gap: 24px; margin-bottom: 16px; }
@@ -57,39 +71,66 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; 
 .status-divider { width: 1px; height: 48px; background-color: var(--md-outline-variant); opacity: 0.5; }
 .status-hint { text-align: center; color: var(--md-on-surface-variant); font-size: 14px; margin-bottom: 20px; }
 
-.progress-container { height: 6px; width: 100%; background-color: var(--md-surface-container-highest); border-radius: 3px; margin-bottom: 20px; overflow: hidden; display: none; }
+/* 波浪形进度条 (Wavy Progress) */
+.progress-container { 
+  height: 8px; width: 100%; background-color: var(--md-surface-container-highest); 
+  border-radius: 4px; margin-bottom: 20px; overflow: hidden; display: none; position: relative;
+}
 .progress-container.show { display: block; }
-.progress-bar { height: 100%; width: 0%; background-color: var(--md-primary); transition: width 0.3s ease; border-radius: 3px; }
+.progress-bar {
+  height: 100%; width: 0%; background-color: var(--md-primary);
+  border-radius: 4px; transition: width 0.4s cubic-bezier(0.2, 0, 0, 1);
+  position: relative; overflow: hidden;
+}
+.progress-bar::after {
+  content: ''; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+  background-image: linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent);
+  background-size: 20px 20px;
+  animation: moveStripes 1s linear infinite;
+}
+@keyframes moveStripes { 0% { background-position: 0 0; } 100% { background-position: 20px 0; } }
 
 .filled-button { display: flex; align-items: center; justify-content: center; width: 100%; height: 56px; border: none; border-radius: 100px; background: var(--md-primary); color: var(--md-on-primary); font-size: 16px; font-weight: 500; cursor: pointer; transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1.2), opacity 0.2s; }
 .filled-button:active { transform: scale(0.94); }
 .filled-button:disabled { background: var(--md-surface-container-highest); color: var(--md-on-surface-variant); opacity: 0.6; transform: none; }
 
-.spinner { width: 22px; height: 22px; display: none; margin-right: 10px; }
+/* 形变动画加载器 (Morphing Loader) */
+.spinner { width: 24px; height: 24px; display: none; margin-right: 12px; }
 .spinner.on { display: block; }
-.spinner svg { animation: rotate 2s linear infinite; width: 100%; height: 100%; }
-.spinner circle { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 1, 200; stroke-dashoffset: 0; animation: dash 1.5s ease-in-out infinite; }
-@keyframes rotate { 100% { transform: rotate(360deg); } }
-@keyframes dash { 0% { stroke-dasharray: 1, 200; stroke-dashoffset: 0; } 50% { stroke-dasharray: 90, 200; stroke-dashoffset: -35px; } 100% { stroke-dasharray: 90, 200; stroke-dashoffset: -124px; } }
+.morph-loader {
+  width: 100%; height: 100%; background-color: currentColor;
+  animation: morph 4s ease-in-out infinite, spin 2s linear infinite;
+}
+@keyframes morph {
+  0%, 100% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; }
+  25% { border-radius: 58% 42% 75% 25% / 76% 46% 54% 24%; }
+  50% { border-radius: 50% 50% 33% 67% / 55% 27% 73% 45%; }
+  75% { border-radius: 33% 67% 58% 42% / 63% 68% 32% 37%; }
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
 
 .result-list { display: flex; flex-direction: column; gap: 12px; }
-.result-item { display: flex; flex-direction: column; padding: 16px; background: var(--md-surface-container); border-radius: 20px; position: relative; }
+.result-item { display: flex; flex-direction: column; padding: 16px; background: var(--md-surface-container); border-radius: 20px; position: relative; transition: background 0.2s; }
+.result-item:hover { background: var(--md-surface-container-high); }
 .grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .result-label { color: var(--md-on-surface-variant); font-size: 12px; margin-bottom: 4px; }
 .result-text { font-family: ui-monospace, monospace; font-size: 15px; color: var(--md-on-surface); word-break: break-all; padding-right: 24px; }
-.copy-icon-btn { position: absolute; right: 12px; bottom: 12px; padding: 6px; border: none; border-radius: 50%; background: transparent; color: var(--md-primary); cursor: pointer; }
+.copy-icon-btn { position: absolute; right: 12px; bottom: 12px; padding: 6px; border: none; border-radius: 50%; background: transparent; color: var(--md-primary); cursor: pointer; transition: background 0.2s; }
+.copy-icon-btn:active { background: var(--md-primary-container); }
 .copy-icon-btn svg { width: 18px; height: 18px; }
 
 .cookie-block { display: flex; flex-direction: column; background: var(--md-surface-container-high); border-radius: 20px; padding: 16px; }
 .cookie-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.text-button { padding: 8px 16px; border: none; border-radius: 100px; background: transparent; color: var(--md-primary); font-weight: 500; font-size: 14px; cursor: pointer; }
+.text-button { padding: 8px 16px; border: none; border-radius: 100px; background: transparent; color: var(--md-primary); font-weight: 500; font-size: 14px; cursor: pointer; transition: background 0.2s; }
+.text-button:active { background: var(--md-primary-container); }
 .cookie-content { font-family: ui-monospace, monospace; font-size: 13px; line-height: 1.6; color: var(--md-on-surface-variant); word-break: break-all; white-space: pre-wrap; max-height: 180px; overflow-y: auto; background: var(--md-surface-container-lowest); padding: 16px; border-radius: 16px; }
 
 .log-box { height: 120px; overflow-y: auto; background: var(--md-surface-container); border-radius: 20px; padding: 16px; font-family: ui-monospace, monospace; font-size: 12px; color: var(--md-on-surface-variant); display: flex; flex-direction: column; gap: 6px; }
 .log-ok { color: var(--md-success); }
 .log-err { color: var(--md-error); }
 
-.history-search { width: 100%; padding: 12px 16px; border-radius: 16px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container); color: var(--md-on-surface); margin-bottom: 16px; font-size: 14px; }
+.history-search { width: 100%; padding: 12px 16px; border-radius: 16px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container); color: var(--md-on-surface); margin-bottom: 16px; font-size: 14px; transition: border 0.2s; }
+.history-search:focus { border-color: var(--md-primary); outline: none; }
 .history-list { display: flex; flex-direction: column; gap: 16px; max-height: 400px; overflow-y: auto; }
 .history-item { background: var(--md-surface-container); padding: 16px; border-radius: 20px; font-size: 14px; display: flex; flex-direction: column; gap: 10px; }
 .history-time { color: var(--md-on-surface-variant); font-size: 12px; }
@@ -99,22 +140,21 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; 
 .hist-btn { background: var(--md-surface-container-highest); color: var(--md-on-surface); border: none; padding: 8px 16px; border-radius: 100px; font-size: 13px; cursor: pointer; }
 .hist-btn.primary { background: var(--md-primary); color: var(--md-on-primary); }
 
-.watermark { position: fixed; top: 16px; right: 64px; z-index: 10; background: rgba(103, 80, 164, 0.15); color: var(--md-primary); padding: 6px 12px; border-radius: 100px; font-size: 11px; font-weight: 600; text-decoration: none; opacity: 0.6; }
+.watermark { position: fixed; top: 16px; right: 64px; z-index: 10; background: rgba(0, 90, 193, 0.15); color: var(--md-primary); padding: 6px 12px; border-radius: 100px; font-size: 11px; font-weight: 600; text-decoration: none; opacity: 0.6; }
 .watermark:active { opacity: 1; }
 
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
 .modal-overlay.show { opacity: 1; pointer-events: auto; }
-.modal-box { background: var(--md-surface-container-high); border-radius: 32px; padding: 28px; width: 90%; max-width: 340px; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1.2); }
+.modal-box { background: var(--md-surface-container-high); border-radius: 32px; padding: 28px; width: 90%; max-width: 340px; transform: scale(0.9); transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1.2); }
 .modal-overlay.show .modal-box { transform: scale(1); }
 .modal-title { margin: 0 0 16px 0; font-size: 20px; font-weight: 500; text-align: center;}
 .input-group { margin-bottom: 16px; }
 .input-group input { width: 100%; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container); color: var(--md-on-surface); font-family: inherit; font-size: 15px; }
 .input-group input:focus { outline: none; border-color: var(--md-primary); }
 
-/* 蜜罐输入框 - 绝对不可见 */
 .honeypot-field { position: absolute; left: -9999px; top: -9999px; opacity: 0; pointer-events: none; }
 
-.snackbar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--md-surface-container-highest); color: var(--md-on-surface); padding: 14px 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 14px; opacity: 0; pointer-events: none; transition: transform 0.3s, opacity 0.3s; z-index: 1000; }
+.snackbar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--md-surface-container-highest); color: var(--md-on-surface); padding: 14px 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-size: 14px; opacity: 0; pointer-events: none; transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1), opacity 0.3s; z-index: 1000; }
 .snackbar.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 </style>
 </head>
@@ -123,7 +163,7 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; 
 <a href="https://qm.qq.com/q/Qa24XBm0w4" target="_blank" class="watermark">By VHax</a>
 
 <header class="app-bar">
-  <h1>4399 助手</h1>
+  <h1>XTZ Cookie</h1>
   <button class="icon-button" id="profileBtn">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
   </button>
@@ -134,7 +174,6 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; 
 </header>
 
 <main class="container">
-  <!-- 蜜罐字段 -->
   <input type="text" class="honeypot-field" id="honeypotInput" tabindex="-1" autocomplete="off">
 
   <section class="card">
@@ -152,7 +191,7 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; 
     <div class="status-hint" id="userStatusText">正在安全连接…</div>
     <div class="progress-container" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
     <button class="filled-button" id="getBtn" disabled>
-      <div class="spinner" id="spinner"><svg viewBox="25 25 50 50"><circle cx="50" cy="50" r="20"></circle></svg></div>
+      <div class="spinner" id="spinner"><div class="morph-loader"></div></div>
       <span id="btnText">加载中</span>
     </button>
   </section>
@@ -194,7 +233,6 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; 
   </section>
 </main>
 
-<!-- 个人中心弹窗 -->
 <div class="modal-overlay" id="profileModal">
   <div class="modal-box">
     <h2 class="modal-title">个人中心</h2>
@@ -222,14 +260,11 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; 
   </div>
 </div>
 
-<!-- 首次绑定弹窗 -->
 <div class="modal-overlay" id="bindModal">
   <div class="modal-box">
     <h2 class="modal-title">首次访问</h2>
     <p style="color:var(--md-on-surface-variant);font-size:14px;margin:0 0 16px 0;text-align:center;">请输入用户名并完成验证</p>
-    <div class="input-group">
-      <input type="text" id="bindUsername" placeholder="输入你的专属用户名">
-    </div>
+    <div class="input-group"><input type="text" id="bindUsername" placeholder="输入你的专属用户名"></div>
     <div id="turnstile-container" style="display:flex;justify-content:center;margin:16px 0;"></div>
     <button class="filled-button" id="bindBtn" style="height:48px; font-size:14px;">确认绑定</button>
   </div>
