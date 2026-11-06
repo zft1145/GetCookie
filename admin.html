@@ -1,362 +1,131 @@
-(function () {
-  'use strict';
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-color="purple">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>XTZ Cookie 管理后台</title>
+<style>
+:root { --md-primary: #6750A4; --md-on-primary: #FFFFFF; --md-surface: #FEF7FF; --md-surface-container-low: #F7F2FA; --md-surface-container: #F3EDF7; --md-surface-container-high: #ECE6F0; --md-surface-container-highest: #E6E0E9; --md-on-surface: #1D1B20; --md-on-surface-variant: #49454F; --md-outline-variant: #CAC4D0; --md-error: #B3261E; --md-success: #386A20; }
+html[data-theme="dark"] { --md-primary: #D0BCFF; --md-on-primary: #381E72; --md-surface: #141218; --md-surface-container-low: #1D1B20; --md-surface-container: #211F26; --md-surface-container-high: #2B2930; --md-surface-container-highest: #36343B; --md-on-surface: #E6E0E9; --md-on-surface-variant: #CAC4D0; --md-outline-variant: #49454F; --md-error: #F2B8B5; --md-success: #B6F09C; }
+/* 省略中间色彩方案... 使用之前给过的 */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background: var(--md-surface); color: var(--md-on-surface); transition: background 0.3s; }
+.app-bar { display: flex; align-items: center; height: 64px; padding: 0 16px; background: var(--md-surface-container); transition: background 0.3s; }
+.app-bar h1 { margin: 0; font-size: 20px; font-weight: 800; flex: 1; }
+.icon-button { width: 48px; height: 48px; border-radius: 50%; border: none; background: transparent; color: var(--md-on-surface-variant); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
+.icon-button:active { background: var(--md-surface-container-highest); }
 
-  const WORKER_URL = "https://cookiew.xtz1.top";
-  const SIGN_SECRET = "VHax_Secret_2024";
-  const $ = id => document.getElementById(id);
-  const snackbar = $('snackbar');
-  
-  let snackTimer, busy = false, userFp = '', isVipMode = false;
+.content { max-width: 640px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.card { background: var(--md-surface-container-low); border-radius: 24px; padding: 20px; transition: background 0.3s; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.card { animation: fadeUp 0.5s cubic-bezier(0.2, 0, 0, 1) both; }
 
-  function hashStr(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) { hash = ((hash << 5) - hash) + str.charCodeAt(i); hash |= 0; }
-    return hash.toString(16);
-  }
+.card-title { margin: 0 0 16px 0; font-size: 16px; font-weight: 500; }
+.input-group { margin-bottom: 12px; }
+.input-group input { width: 100%; padding: 12px 16px; border-radius: 16px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container); color: var(--md-on-surface); font-family: inherit; font-size: 14px; }
+.input-group input:focus { outline: none; border-color: var(--md-primary); }
+.btn-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 12px; border-radius: 100px; border: none; background: var(--md-primary); color: var(--md-on-primary); font-weight: 600; font-size: 14px; cursor: pointer; text-decoration: none; }
+.btn-outline { background: transparent; color: var(--md-primary); border: 1px solid var(--md-outline-variant); }
+.admin-list { border: 1px solid var(--md-outline-variant); border-radius: 16px; overflow: hidden; }
+.admin-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--md-outline-variant); background: var(--md-surface-container-lowest); }
+.admin-item:last-child { border-bottom: none; }
+.copy-btn { border: none; background: transparent; color: var(--md-primary); cursor: pointer; font-weight: 600; font-size: 14px; padding: 6px 12px; border-radius: 100px; }
 
-  function buildUrl(path, params = {}) {
-    const url = new URL(WORKER_URL + path);
-    url.searchParams.set("fp", userFp);
-    url.searchParams.set("t", Date.now().toString());
-    Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
-    
-    if (navigator.webdriver) url.searchParams.set("bot", "1");
-    if ($('honeypotInput').value) url.searchParams.set("honeypot", "1");
+/* 设置抽屉 (后台版) */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.modal-overlay.show { opacity: 1; pointer-events: auto; }
+.modal-box { background: var(--md-surface-container-high); border-radius: 32px 32px 0 0; padding: 24px 24px 40px; width: 100%; max-width: 600px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1.2); }
+.modal-overlay.show .modal-box { transform: translateY(0); }
+.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--md-outline-variant); }
+.setting-row:last-child { border-bottom: none; padding-bottom: 0; }
+.setting-row span { font-size: 16px; font-weight: 500; }
+.switch { position: relative; display: inline-block; width: 52px; height: 32px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--md-surface-container-highest); transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 24px; width: 24px; left: 4px; bottom: 4px; background-color: var(--md-outline-variant); transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--md-primary); }
+input:checked + .slider:before { transform: translateX(20px); background-color: var(--md-on-primary); }
+.color-picker { display: flex; gap: 12px; }
+.color-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; }
+.color-dot.active { border-color: var(--md-on-surface); }
+.c-purple { background: #6750A4; } .c-blue { background: #0061A4; } .c-green { background: #006C4C; } .c-orange { background: #8F4C00; }
 
-    const str = url.searchParams.toString() + SIGN_SECRET;
-    url.searchParams.set("sign", hashStr(str));
-    return url.toString();
-  }
+.snackbar { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 100px); background: var(--md-surface-container-highest); color: var(--md-on-surface); padding: 12px 24px; border-radius: 12px; font-size: 14px; opacity: 0; transition: all 0.3s; z-index: 100; }
+.snackbar.show { transform: translate(-50%, 0); opacity: 1; }
+</style>
+</head>
+<body>
 
-  function toast(msg) {
-    snackbar.textContent = msg;
-    snackbar.classList.add('show');
-    clearTimeout(snackTimer);
-    snackTimer = setTimeout(() => snackbar.classList.remove('show'), 2500);
-  }
+<header class="app-bar">
+  <h1>XTZ Cookie 后台</h1>
+  <button class="icon-button" id="settingsBtn">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+  </button>
+</header>
 
-  async function generateFingerprint() {
-    try {
-      let savedFp = localStorage.getItem('user_fp');
-      if (savedFp) return savedFp;
-      const raw = [navigator.userAgent, screen.width + 'x' + screen.height, navigator.language, new Date().getTimezoneOffset()].join('|');
-      let hash = 0;
-      for (let i = 0; i < raw.length; i++) { hash = ((hash << 5) - hash) + raw.charCodeAt(i); hash = hash & hash; }
-      const fp = 'FP_' + Math.abs(hash).toString(16).toUpperCase();
-      localStorage.setItem('user_fp', fp);
-      return fp;
-    } catch(e) { return 'FP_TEMP_' + Math.floor(Math.random() * 100000); }
-  }
+<main class="content">
+  <section class="card" id="authCard" style="display:none">
+    <h2 class="card-title">管理员鉴权</h2>
+    <div class="input-group">
+      <input type="password" id="adminKeyInput" placeholder="请输入管理员密钥">
+    </div>
+    <button class="btn" id="authBtn">验证进入</button>
+  </section>
 
-  function copyText(text) {
-    if (!text || text === '—') { toast('暂无内容'); return; }
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(text).then(() => toast('已复制'));
-    } else {
-      const ta = document.createElement('textarea');
-      ta.value = text; ta.style.position = 'fixed'; ta.style.top = '-9999px';
-      document.body.appendChild(ta); ta.select();
-      document.execCommand('copy'); document.body.removeChild(ta);
-      toast('已复制');
-    }
-  }
-  window.copyText = copyText;
+  <div class="btn-row" id="navBtns" style="display:none">
+    <a href="https://4399pc.cc/account" target="_blank" class="btn btn-outline">曲奇 API 界面</a>
+    <a href="https://cookie.xtz1.top" target="_blank" class="btn btn-outline">主站页面</a>
+  </div>
 
-  document.addEventListener('click', e => {
-    const btn = e.target.closest('[data-copy]');
-    if (btn) copyText($(btn.dataset.copy).textContent);
-  });
+  <section class="card" id="addChannelCard" style="display:none">
+    <h2 class="card-title">增加新通道</h2>
+    <div class="input-group"><input type="text" id="newChannelName" placeholder="通道名称"></div>
+    <div class="input-group"><input type="text" id="newChannelKey" placeholder="API 密钥 (aku_...)"></div>
+    <button class="btn" id="addChannelBtn">保存通道</button>
+  </section>
 
-  function log(msg, type) {
-    const line = document.createElement('div');
-    line.className = 'log-line' + (type ? ' log-' + type : '');
-    line.textContent = `[${new Date().toLocaleTimeString('zh-CN', { hour12: false })}] ${msg}`;
-    $('log').appendChild(line);
-    $('log').scrollTop = $('log').scrollHeight;
-  }
+  <section class="card" id="dataCard" style="display:none">
+    <h2 class="card-title">通道状态与投票</h2>
+    <div class="admin-list" id="channelList">加载中…</div>
+  </section>
 
-  async function loadInfo() {
-    try {
-      const res = await fetch(buildUrl("/info"), { cache: 'no-store' });
-      const data = await res.json();
-      if (data.ok) {
-        if (!data.username) {
-          $('bindModal').classList.add('show');
-          showBindTurnstile();
-          return;
-        }
+  <section class="card" id="configCard" style="display:none">
+    <h2 class="card-title">系统设置</h2>
+    <div class="input-group"><input type="text" id="cfgSiteKey" placeholder="Turnstile Site Key"></div>
+    <div class="input-group"><input type="text" id="cfgSecret" placeholder="Turnstile Secret Key"></div>
+    <div class="input-group"><input type="text" id="cfgCdk" placeholder="兑换码 CDK"></div>
+    <button class="btn btn-outline" id="saveConfigBtn">保存配置</button>
+  </section>
 
-        $('totalToday').textContent = data.total_today || 0;
-        $('totalUsers').textContent = data.total_users || 0;
-        
-        if (data.is_vip) {
-          isVipMode = true;
-          $('userQuota').textContent = '∞';
-          $('userStatusText').textContent = `无限额度`;
-        } else {
-          isVipMode = false;
-          $('userQuota').textContent = data.remaining;
-          $('userStatusText').textContent = `您今日已获取 ${data.used} 次`;
-        }
+  <section class="card" id="userCard" style="display:none">
+    <h2 class="card-title">已使用用户</h2>
+    <div class="admin-list" id="userList">加载中…</div>
+  </section>
+</main>
 
-        if (data.status === 'banned') {
-          $('getBtn').disabled = true; $('btnText').textContent = '已封禁';
-          $('userStatusText').textContent = '您的设备已被封禁';
-          $('userStatusText').style.color = 'var(--md-error)';
-          return;
-        }
-
-        if (data.remaining <= 0) {
-          $('getBtn').disabled = true; $('btnText').textContent = '额度已用完';
-        } else {
-          $('getBtn').disabled = false; $('btnText').textContent = '获取';
-        }
-      }
-    } catch (e) {
-      if ($('btnText').textContent === '加载中') {
-        $('getBtn').disabled = false; $('btnText').textContent = '获取';
-        $('userStatusText').textContent = '连接失败，请刷新重试';
-      }
-    }
-  }
-
-  // 个人中心
-  $('settingsBtn').addEventListener('click', () => {
-    $('settingsModal').classList.add('show');
-  });
-  $('closeSettingsBtn').addEventListener('click', () => {
-    $('settingsModal').classList.remove('show');
-  });
-
-  $('themeSetting').checked = document.documentElement.dataset.theme === 'dark';
-  $('themeSetting').addEventListener('change', (e) => {
-    const theme = e.target.checked ? 'dark' : 'light';
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem('md_theme', theme);
-  });
-
-  window.setColor = (color) => {
-    document.documentElement.dataset.color = color;
-    localStorage.setItem('md_color', color);
-    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
-    $('dot-' + color).classList.add('active');
-  };
-
-  // 通道投票
-  let currentChannelId = 0;
-  window.vote = async (action) => {
-    if (!currentChannelId) return;
-    $('voteGroup').style.pointerEvents = 'none';
-    try {
-      await fetch(buildUrl("/vote", { channel: currentChannelId, action }));
-      toast(action === 'up' ? '已推荐该通道' : '已不推荐该通道');
-    } catch(e) {}
-  };
-
-  let bindWidgetId = null;
-  async function showBindTurnstile() {
-    try {
-      const res = await fetch(buildUrl("/info"));
-      const data = await res.json();
-      const siteKey = data.turnstile_site_key;
-      if (!siteKey) return;
-      const container = $('turnstile-container');
-      container.innerHTML = '';
-      bindWidgetId = turnstile.render(container, {
-        sitekey: siteKey,
-        theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'
-      });
-    } catch(e) {}
-  }
-
-  $('bindBtn').addEventListener('click', async () => {
-    const username = $('bindUsername').value.trim();
-    if (!username) return toast('请输入用户名');
-    const token = turnstile.getResponse(bindWidgetId);
-    if (!token) return toast('请完成人机验证');
-    
-    $('bindBtn').disabled = true;
-    $('bindBtn').textContent = '绑定中...';
-
-    try {
-      const res = await fetch(buildUrl("/bind", { username, turnstile_token: token }));
-      const data = await res.json();
-      if (data.ok) {
-        toast('绑定成功');
-        $('bindModal').classList.remove('show');
-        loadInfo();
-      } else {
-        toast(data.error);
-        $('bindBtn').disabled = false;
-        $('bindBtn').textContent = '确认绑定';
-      }
-    } catch(e) {
-      toast('网络错误');
-      $('bindBtn').disabled = false;
-      $('bindBtn').textContent = '确认绑定';
-    }
-  });
-
-  let progressInterval;
-  function startProgress() {
-    $('progressWrap').classList.add('show');
-    $('progressBar').style.width = '0%';
-    let p = 0;
-    progressInterval = setInterval(() => {
-      if (p < 30) p += 10; else if (p < 60) p += 5; else if (p < 90) p += 1;
-      $('progressBar').style.width = p + '%';
-    }, 200);
-  }
-  function stopProgress() {
-    clearInterval(progressInterval);
-    $('progressBar').style.width = '100%';
-    setTimeout(() => { $('progressWrap').classList.remove('show'); }, 300);
-  }
-
-  async function doFetch() {
-    if (busy) return;
-    busy = true;
-    $('getBtn').disabled = true;
-    $('spinner').classList.add('on');
-    $('btnText').textContent = '获取中…';
-    $('voteGroup').style.display = 'none';
-    
-    $('outChannel').textContent = '来源通道 —';
-    $('outUser').textContent = '—';
-    $('outPass').textContent = '—';
-    $('outCookie').textContent = '—';
-    
-    startProgress();
-
-    try {
-      const claimRes = await fetch(buildUrl("/claim"), { cache: 'no-store' });
-      const claimData = await claimRes.json();
-
-      if (!claimData.ok) throw new Error(claimData.error || '获取失败');
-
-      currentChannelId = claimData.channel;
-      $('outChannel').textContent = `来源通道 ${claimData.channel}`;
-      $('voteGroup').style.display = 'flex';
-      $('voteGroup').style.pointerEvents = 'auto';
-
-      $('outUser').textContent = claimData.username;
-      $('outPass').textContent = claimData.password;
-      $('userQuota').textContent = isVipMode ? '∞' : claimData.remaining;
-      $('totalToday').textContent = claimData.total_today; // 实时更新
-      log(`账号获取成功！`, 'ok');
-
-      $('btnText').textContent = '转换中…';
-
-      const convRes = await fetch(buildUrl("/convert", {
-        username: claimData.username,
-        password: claimData.password,
-        key: claimData.channel_key,
-        refund: "true"
-      }));
-      const convData = await convRes.json();
-
-      if (!convData.ok) throw new Error(convData.error || 'Cookie 转换失败');
-
-      $('outCookie').textContent = convData.cookies;
-      stopProgress();
-      log(`Cookie 转换成功`, 'ok');
-      toast('获取成功');
-      
-      let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
-      history.unshift({ time: new Date().toLocaleString('zh-CN', { hour12: false }), username: claimData.username, password: claimData.password, cookies: convData.cookies });
-      if (history.length > 50) history.pop();
-      localStorage.setItem('cookies_history', JSON.stringify(history));
-      renderHistory();
-
-    } catch (e) {
-      stopProgress();
-      log(`失败: ${e.message}`, 'err');
-      toast(e.message);
-    } finally {
-      busy = false;
-      $('spinner').classList.remove('on');
-      if ($('btnText').textContent !== '已封禁' && $('btnText').textContent !== '额度已用完') {
-        $('getBtn').disabled = false;
-        $('btnText').textContent = '获取';
-      }
-    }
-  }
-
-  function renderHistory(keyword = '') {
-    let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
-    if (keyword) {
-      keyword = keyword.toLowerCase();
-      history = history.filter(h => 
-        (h.username && h.username.toLowerCase().includes(keyword)) || (h.cookies && h.cookies.toLowerCase().includes(keyword))
-      );
-    }
-    if (history.length === 0) {
-      $('historyList').innerHTML = '<div style="font-size:12px;color:var(--md-on-surface-variant);text-align:center;padding:12px;">暂无记录</div>';
-      return;
-    }
-    
-    $('historyList').innerHTML = history.map((h, i) => `
-      <div class="history-item">
-        <div class="history-time">${h.time}</div>
-        <div class="history-data-row"><span>账号:</span> ${h.username}</div>
-        <div class="history-data-row"><span>密码:</span> ${h.password}</div>
-        <div class="cookie-block" style="margin-top:8px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-            <span style="color:var(--md-on-surface-variant); font-size:12px;">Cookie</span>
-            <button class="text-button" onclick="copyText('${h.cookies}')">复制</button>
-          </div>
-          <div style="font-family:monospace;font-size:12px;color:var(--md-on-surface-variant);word-break:break-all;max-height:80px;overflow-y:auto;background:var(--md-surface-container-lowest);padding:12px;border-radius:12px;">${h.cookies || '无'}</div>
-        </div>
-        <div class="history-actions">
-          <button class="hist-btn primary" onclick="convertHistory(${i})">转为曲奇</button>
-        </div>
+<!-- 设置抽屉 (后台版) -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-box">
+    <h2 class="card-title" style="font-size:20px; margin-bottom:24px;">外观设置</h2>
+    <div class="setting-row">
+      <span>深色模式</span>
+      <label class="switch"><input type="checkbox" id="themeSetting"><span class="slider"></span></label>
+    </div>
+    <div class="setting-row">
+      <span>界面配色</span>
+      <div class="color-picker">
+        <div class="color-dot c-purple" onclick="setColor('purple')" id="dot-purple"></div>
+        <div class="color-dot c-blue" onclick="setColor('blue')" id="dot-blue"></div>
+        <div class="color-dot c-green" onclick="setColor('green')" id="dot-green"></div>
+        <div class="color-dot c-orange" onclick="setColor('orange')" id="dot-orange"></div>
       </div>
-    `).join('');
-  }
+    </div>
+    <button class="btn" id="closeSettingsBtn" style="margin-top:24px;">完成</button>
+  </div>
+</div>
 
-  window.convertHistory = async (index) => {
-    let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
-    const h = history[index];
-    if(!h) return;
-    toast('正在转换...');
-    
-    try {
-      const res = await fetch(buildUrl("/convert", { username: h.username, password: h.password, key: 'default' }));
-      const data = await res.json();
-      if (data.ok && data.cookies) {
-        $('outUser').textContent = h.username;
-        $('outPass').textContent = h.password;
-        $('outCookie').textContent = data.cookies;
-        history[index].cookies = data.cookies;
-        localStorage.setItem('cookies_history', JSON.stringify(history));
-        renderHistory($('historySearch').value);
-        toast('转换成功');
-      } else {
-        toast(data.error || '转换失败');
-      }
-    } catch(e) { toast('网络异常'); }
-  };
-
-  $('historySearch').addEventListener('input', (e) => renderHistory(e.target.value));
-
-  (async function init() {
-    const savedTheme = localStorage.getItem('md_theme');
-    if (savedTheme) {
-      document.documentElement.dataset.theme = savedTheme;
-    } else {
-      document.documentElement.dataset.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    $('themeSetting').checked = document.documentElement.dataset.theme === 'dark';
-
-    const savedColor = localStorage.getItem('md_color') || 'purple';
-    setColor(savedColor);
-
-    try { userFp = await generateFingerprint(); } catch(e) { userFp = 'FP_FALLBACK_' + Date.now(); }
-    await loadInfo(); 
-    if ($('btnText').textContent === '加载中') {
-      $('getBtn').disabled = false; $('btnText').textContent = '获取';
-    }
-    $('getBtn').addEventListener('click', () => doFetch());
-    renderHistory();
-  })();
-})();
+<div class="snackbar" id="snackbar"></div>
+<script src="admin.js"></script>
+</body>
+</html>
