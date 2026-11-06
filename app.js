@@ -2,18 +2,15 @@
   'use strict';
 
   const WORKER_URL = "https://cookiew.xtz1.top";
-  const SIGN_SECRET = "VHax_Secret_2024"; 
+  const SIGN_SECRET = "VHax_Secret_2024";
   const $ = id => document.getElementById(id);
   const snackbar = $('snackbar');
   
-  let snackTimer, busy = false, userFp = '', isVipMode = false;
+  let snackTimer, busy = false, userFp = '', isVipMode = false, currentChannelId = 0;
 
   function hashStr(str) {
     let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) - hash) + str.charCodeAt(i);
-      hash |= 0;
-    }
+    for (let i = 0; i < str.length; i++) { hash = ((hash << 5) - hash) + str.charCodeAt(i); hash |= 0; }
     return hash.toString(16);
   }
 
@@ -22,11 +19,12 @@
     url.searchParams.set("fp", userFp);
     url.searchParams.set("t", Date.now().toString());
     Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+    
     if (navigator.webdriver) url.searchParams.set("bot", "1");
     if ($('honeypotInput').value) url.searchParams.set("honeypot", "1");
+
     const str = url.searchParams.toString() + SIGN_SECRET;
-    const sign = hashStr(str);
-    url.searchParams.set("sign", sign);
+    url.searchParams.set("sign", hashStr(str));
     return url.toString();
   }
 
@@ -87,13 +85,17 @@
           showBindTurnstile();
           return;
         }
-        $('userQuota').textContent = data.remaining;
-        $('usedCount').textContent = data.used;
+
+        $('totalToday').textContent = data.total_today || 0;
+        $('totalUsers').textContent = data.total_users || 0;
         
         if (data.is_vip) {
           isVipMode = true;
-          $('userStatusText').textContent = `无限额度已解锁`;
+          $('userQuota').textContent = '∞';
+          $('userStatusText').textContent = `无限额度`;
         } else {
+          isVipMode = false;
+          $('userQuota').textContent = data.remaining;
           $('userStatusText').textContent = `您今日已获取 ${data.used} 次`;
         }
 
@@ -118,21 +120,31 @@
     }
   }
 
-  $('profileBtn').addEventListener('click', async () => {
-    try {
-      const res = await fetch(buildUrl("/info"));
-      const data = await res.json();
-      if (data.ok) {
-        $('profUid').textContent = data.username || '未绑定';
-        $('profQuota').textContent = data.is_vip ? '∞' : data.remaining;
-        $('profStatus').textContent = data.status === 'banned' ? '封禁' : '正常';
-        $('profStatus').style.color = data.status === 'banned' ? 'var(--md-error)' : 'var(--md-success)';
-        $('profRole').textContent = data.is_vip ? '无限额度' : '普通用户';
-        $('profileModal').classList.add('show');
-      }
-    } catch(e) { toast('获取信息失败'); }
+  $('settingsBtn').addEventListener('click', () => $('settingsModal').classList.add('show'));
+  $('closeSettingsBtn').addEventListener('click', () => $('settingsModal').classList.remove('show'));
+
+  $('themeSetting').checked = document.documentElement.dataset.theme === 'dark';
+  $('themeSetting').addEventListener('change', (e) => {
+    const theme = e.target.checked ? 'dark' : 'light';
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('md_theme', theme);
   });
-  $('closeProfileBtn').addEventListener('click', () => $('profileModal').classList.remove('show'));
+
+  window.setColor = (color) => {
+    document.documentElement.dataset.color = color;
+    localStorage.setItem('md_color', color);
+    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+    $('dot-' + color).classList.add('active');
+  };
+
+  window.vote = async (action) => {
+    if (!currentChannelId) return;
+    $('voteGroup').style.pointerEvents = 'none';
+    try {
+      await fetch(buildUrl("/vote", { channel: currentChannelId, action }));
+      toast(action === 'up' ? '已推荐该通道' : '已不推荐该通道');
+    } catch(e) {}
+  };
 
   let bindWidgetId = null;
   async function showBindTurnstile() {
@@ -199,8 +211,10 @@
     busy = true;
     $('getBtn').disabled = true;
     $('spinner').classList.add('on');
-    $('btnText').textContent = '获取账号中…';
+    $('btnText').textContent = '获取中…';
+    $('voteGroup').style.display = 'none';
     
+    $('outChannel').textContent = '来源通道 —';
     $('outUser').textContent = '—';
     $('outPass').textContent = '—';
     $('outCookie').textContent = '—';
@@ -213,23 +227,16 @@
 
       if (!claimData.ok) throw new Error(claimData.error || '获取失败');
 
+      currentChannelId = claimData.channel;
+      $('outChannel').textContent = `来源通道 ${claimData.channel}`;
+      $('voteGroup').style.display = 'flex';
+      $('voteGroup').style.pointerEvents = 'auto';
+
       $('outUser').textContent = claimData.username;
       $('outPass').textContent = claimData.password;
-      $('userQuota').textContent = claimData.remaining;
-      log(`账号获取成功！剩余 ${claimData.remaining} 次`, 'ok');
-
-      // 先记录到历史，防止转换失败丢失
-      let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
-      const histObj = { 
-        time: new Date().toLocaleString('zh-CN', { hour12: false }), 
-        username: claimData.username, 
-        password: claimData.password, 
-        cookies: "" 
-      };
-      history.unshift(histObj);
-      if (history.length > 50) history.pop();
-      localStorage.setItem('cookies_history', JSON.stringify(history));
-      renderHistory();
+      $('userQuota').textContent = isVipMode ? '∞' : claimData.remaining;
+      $('totalToday').textContent = claimData.total_today;
+      log(`账号获取成功！`, 'ok');
 
       $('btnText').textContent = '转换中…';
 
@@ -241,15 +248,16 @@
       }));
       const convData = await convRes.json();
 
-      if (!convData.ok) throw new Error('Cookie 转换失败');
+      if (!convData.ok) throw new Error(convData.error || 'Cookie 转换失败');
 
       $('outCookie').textContent = convData.cookies;
       stopProgress();
       log(`Cookie 转换成功`, 'ok');
       toast('获取成功');
       
-      // 更新历史记录里的 Cookie
-      history[0].cookies = convData.cookies;
+      let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
+      history.unshift({ time: new Date().toLocaleString('zh-CN', { hour12: false }), username: claimData.username, password: claimData.password, cookies: convData.cookies });
+      if (history.length > 50) history.pop();
       localStorage.setItem('cookies_history', JSON.stringify(history));
       renderHistory();
 
@@ -288,9 +296,9 @@
         <div class="cookie-block" style="margin-top:8px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
             <span style="color:var(--md-on-surface-variant); font-size:12px;">Cookie</span>
-            <button class="text-button" onclick="copyText('${h.cookies || ''}')">复制</button>
+            <button class="text-button" onclick="copyText('${h.cookies}')">复制</button>
           </div>
-          <div style="font-family:monospace;font-size:12px;color:var(--md-on-surface-variant);word-break:break-all;max-height:80px;overflow-y:auto;background:var(--md-surface-container-lowest);padding:8px;border-radius:8px;">${h.cookies || '未生成'}</div>
+          <div style="font-family:monospace;font-size:12px;color:var(--md-on-surface-variant);word-break:break-all;max-height:80px;overflow-y:auto;background:var(--md-surface-container-lowest);padding:12px;border-radius:12px;">${h.cookies || '无'}</div>
         </div>
         <div class="history-actions">
           <button class="hist-btn primary" onclick="convertHistory(${i})">转为曲奇</button>
@@ -325,6 +333,17 @@
   $('historySearch').addEventListener('input', (e) => renderHistory(e.target.value));
 
   (async function init() {
+    const savedTheme = localStorage.getItem('md_theme');
+    if (savedTheme) {
+      document.documentElement.dataset.theme = savedTheme;
+    } else {
+      document.documentElement.dataset.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    $('themeSetting').checked = document.documentElement.dataset.theme === 'dark';
+
+    const savedColor = localStorage.getItem('md_color') || 'purple';
+    setColor(savedColor);
+
     try { userFp = await generateFingerprint(); } catch(e) { userFp = 'FP_FALLBACK_' + Date.now(); }
     await loadInfo(); 
     if ($('btnText').textContent === '加载中') {
@@ -333,15 +352,4 @@
     $('getBtn').addEventListener('click', () => doFetch());
     renderHistory();
   })();
-
-  const mq = window.matchMedia('(prefers-color-scheme: dark)');
-  function applyTheme(theme) {
-    document.documentElement.dataset.theme = theme;
-    $('iconSun').style.display = theme === 'dark' ? 'none' : '';
-    $('iconMoon').style.display = theme === 'dark' ? '' : 'none';
-  }
-  applyTheme(mq.matches ? 'dark' : 'light');
-  $('themeBtn').addEventListener('click', () => {
-    applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
-  });
 })();
