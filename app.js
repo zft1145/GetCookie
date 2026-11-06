@@ -23,12 +23,9 @@
     if (navigator.webdriver) url.searchParams.set("bot", "1");
     if ($('honeypotInput').value) url.searchParams.set("honeypot", "1");
 
-    // 排序后生成签名，保证前后端一致
-    const searchParams = new URLSearchParams(url.search);
-    const keys = Array.from(searchParams.keys()).sort();
-    let str = '';
-    keys.forEach(k => { str += k + '=' + searchParams.get(k); });
-    url.searchParams.set("sign", hashStr(str + SIGN_SECRET));
+    // 恢复原生 toString()
+    const str = url.searchParams.toString() + SIGN_SECRET;
+    url.searchParams.set("sign", hashStr(str));
     
     return url.toString();
   }
@@ -117,7 +114,6 @@
           $('getBtn').disabled = false; $('btnText').textContent = '获取';
         }
       } else {
-        // 处理错误逻辑
         $('userStatusText').textContent = data.error || '校验失败，请刷新';
         $('userStatusText').style.color = 'var(--md-error)';
         $('getBtn').disabled = false; $('btnText').textContent = '重试';
@@ -353,6 +349,17 @@
     setColor(savedColor);
 
     try { userFp = await generateFingerprint(); } catch(e) { userFp = 'FP_FALLBACK_' + Date.now(); }
+    
+    // 防卡死超时检测
+    setTimeout(() => {
+      if ($('btnText').textContent === '加载中' || $('btnText').textContent === '正在初始化') {
+        $('getBtn').disabled = false; 
+        $('btnText').textContent = '获取';
+        $('userStatusText').textContent = '网络超时，请点击获取重试';
+        $('userStatusText').style.color = 'var(--md-error)';
+      }
+    }, 3000);
+
     await loadInfo(); 
     if ($('btnText').textContent === '加载中') {
       $('getBtn').disabled = false; $('btnText').textContent = '获取';
