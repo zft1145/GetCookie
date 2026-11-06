@@ -41,12 +41,17 @@ function hashStr(str) {
 function verifySignature(url, sign) {
   if (!sign) return false;
   const t = parseInt(url.searchParams.get("t") || "0", 10);
-  if (Date.now() - t > 300000) return false;
+  if (Date.now() - t > 300000) return false; // 5分钟过期
   
   const params = new URLSearchParams(url.search);
   params.delete("sign");
-  const str = params.toString() + SIGN_SECRET;
-  return hashStr(str) === sign;
+  
+  // 按字母排序，确保前后端一致
+  const keys = Array.from(params.keys()).sort();
+  let str = '';
+  keys.forEach(k => { str += k + '=' + params.get(k); });
+  
+  return hashStr(str + SIGN_SECRET) === sign;
 }
 
 function calcDynamicLimit(isVip, count) {
@@ -196,12 +201,13 @@ export default {
         return json({ ok: false, error: "Invalid Request" }, 400, origin);
       }
 
+      // 防御：蜜罐 & 环境检测
       if (url.searchParams.get("bot") === "1" || url.searchParams.get("honeypot") === "1") {
-        return json({ ok: true, status: "ok", cookies: "fake_data_silent_ban", remaining: 0, used: 0, total_today: 0 }, 200, origin);
+        return json({ ok: true, status: "ok", cookies: "fake_data_silent_ban", remaining: 0, used: 0, total_today: 0, total_users: 0 }, 200, origin);
       }
 
       const sign = url.searchParams.get("sign");
-      if (!verifySignature(url, sign)) return json({ ok: false, error: "网络异常，请刷新重试" }, 403, origin);
+      if (!verifySignature(url, sign)) return json({ ok: false, error: "安全校验失败，请刷新页面" }, 403, origin);
 
       const fingerprint = url.searchParams.get("fp");
       if (!fingerprint) return json({ ok: false, error: "缺少参数" }, 400, origin);
