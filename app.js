@@ -1,107 +1,386 @@
-<!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>后台管理 · XTZ Cookie</title>
-<style>
-:root {
-  --md-primary: #6750A4; --md-on-primary: #FFFFFF;
-  --md-surface: #FEF7FF; --md-surface-container-lowest: #FFFFFF;
-  --md-surface-container-low: #F7F2FA; --md-surface-container: #F3EDF7; 
-  --md-surface-container-high: #ECE6F0; --md-surface-container-highest: #E6E0E9;
-  --md-on-surface: #1D1B20; --md-on-surface-variant: #49454F;
-  --md-outline-variant: #CAC4D0; --md-error: #B3261E; --md-success: #386A20;
-}
-html[data-theme="dark"] {
-  --md-primary: #D0BCFF; --md-on-primary: #381E72;
-  --md-surface: #141218; --md-surface-container-lowest: #0F0D13;
-  --md-surface-container-low: #1D1B20; --md-surface-container: #211F26; 
-  --md-surface-container-high: #2B2930; --md-surface-container-highest: #36343B;
-  --md-on-surface: #E6E0E9; --md-on-surface-variant: #CAC4D0;
-  --md-outline-variant: #49454F; --md-error: #F2B8B5; --md-success: #B6F09C;
-}
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background: var(--md-surface); color: var(--md-on-surface); transition: background 0.3s; }
-.app-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; height: 64px; padding: 0 16px; background: var(--md-surface-container); }
-.app-bar h1 { margin: 0; font-size: 22px; font-weight: 700; flex: 1; background: linear-gradient(135deg, var(--md-primary), #8E7CC3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.icon-button { width: 48px; height: 48px; border-radius: 50%; border: none; background: transparent; color: var(--md-on-surface-variant); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s, transform 0.2s; }
-.icon-button:active { transform: scale(0.85); background: var(--md-surface-container-highest); }
-.content { max-width: 640px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+(function () {
+  'use strict';
 
-@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-.card { background: var(--md-surface-container-low); border-radius: 28px; padding: 24px; animation: fadeUp 0.5s cubic-bezier(0.2, 0, 0, 1) both; }
-.card:nth-child(2) { animation-delay: 0.1s; }
-.card:nth-child(3) { animation-delay: 0.2s; }
-.card:nth-child(4) { animation-delay: 0.3s; }
-.card-title { margin: 0 0 16px 0; font-size: 16px; font-weight: 500; }
-.input-group { margin-bottom: 16px; }
-.input-group input { width: 100%; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container); color: var(--md-on-surface); font-family: inherit; font-size: 14px; transition: border-color 0.2s; }
-.input-group input:focus { outline: none; border-color: var(--md-primary); }
-.btn-row { display: flex; gap: 12px; margin-bottom: 16px; }
-.btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 14px; border-radius: 100px; border: none; background: var(--md-primary); color: var(--md-on-primary); font-weight: 500; font-size: 15px; cursor: pointer; text-decoration: none; transition: transform 0.2s, background 0.3s; }
-.btn:active { transform: scale(0.94); }
-.btn-outline { background: transparent; color: var(--md-primary); border: 1px solid var(--md-outline-variant); }
-.admin-list { border: 1px solid var(--md-outline-variant); border-radius: 20px; overflow: hidden; background: var(--md-surface-container); }
-.admin-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid var(--md-outline-variant); background: var(--md-surface-container-lowest); transition: background 0.3s; }
-.admin-item:last-child { border-bottom: none; }
-.copy-btn { border: none; background: transparent; color: var(--md-primary); cursor: pointer; font-weight: 500; font-size: 14px; padding: 8px 16px; border-radius: 100px; transition: background 0.2s, transform 0.1s; }
-.copy-btn:active { transform: scale(0.85); background: var(--md-surface-container-highest); }
-.snackbar { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 100px); background: var(--md-surface-container-highest); color: var(--md-on-surface); padding: 14px 24px; border-radius: 12px; font-size: 14px; opacity: 0; transition: all 0.3s; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-.snackbar.show { transform: translate(-50%, 0); opacity: 1; }
-</style>
-</head>
-<body>
+  const WORKER_URL = "https://cookiew.xtz1.top";
+  const SIGN_SECRET = "VHax_Secret_2024";
+  const $ = id => document.getElementById(id);
+  const snackbar = $('snackbar');
+  
+  let snackTimer, busy = false, userFp = '', isVipMode = false;
+  let currentChannelId = 0;
 
-<header class="app-bar">
-  <h1>后台管理 · XTZ Cookie</h1>
-  <button class="icon-button" id="themeBtn">
-    <svg id="iconSun" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-    <svg id="iconMoon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" style="display:none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-  </button>
-</header>
+  function hashStr(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) { hash = ((hash << 5) - hash) + str.charCodeAt(i); hash |= 0; }
+    return hash.toString(16);
+  }
 
-<main class="content">
-  <section class="card" id="authCard" style="display:none">
-    <h2 class="card-title">管理员鉴权</h2>
-    <div class="input-group">
-      <input type="password" id="adminKeyInput" placeholder="请输入管理员密钥">
-    </div>
-    <button class="btn" id="authBtn">验证进入</button>
-  </section>
+  // 全新的签名构建逻辑，防编码错乱
+  function buildUrl(path, extraParams = {}) {
+    const t = Date.now().toString();
+    let params = { fp: userFp, t: t, ...extraParams };
+    
+    if (navigator.webdriver) params.bot = "1";
+    if ($('honeypotInput').value) params.honeypot = "1";
+    
+    let keys = Object.keys(params).sort();
+    let str = SIGN_SECRET + "&t=" + t;
+    keys.forEach(k => { str += "&" + k + "=" + params[k]; });
+    const sign = hashStr(str);
+    
+    const url = new URL(WORKER_URL + path);
+    Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+    url.searchParams.set("sign", sign);
+    return url.toString();
+  }
 
-  <div class="btn-row" id="navBtns" style="display:none">
-    <a href="https://4399pc.cc/account" target="_blank" class="btn btn-outline">曲奇 API 界面</a>
-    <a href="https://cookie.xtz1.top" target="_blank" class="btn btn-outline">主站页面</a>
-  </div>
+  function toast(msg) {
+    snackbar.textContent = msg;
+    snackbar.classList.add('show');
+    clearTimeout(snackTimer);
+    snackTimer = setTimeout(() => snackbar.classList.remove('show'), 2500);
+  }
 
-  <section class="card" id="addChannelCard" style="display:none">
-    <h2 class="card-title">增加新通道</h2>
-    <div class="input-group"><input type="text" id="newChannelName" placeholder="通道名称"></div>
-    <div class="input-group"><input type="text" id="newChannelKey" placeholder="API 密钥 (aku_...)"></div>
-    <button class="btn" id="addChannelBtn">保存通道</button>
-  </section>
+  async function generateFingerprint() {
+    try {
+      let savedFp = localStorage.getItem('user_fp');
+      if (savedFp) return savedFp;
+      const raw = [navigator.userAgent, screen.width + 'x' + screen.height, navigator.language, new Date().getTimezoneOffset()].join('|');
+      let hash = 0;
+      for (let i = 0; i < raw.length; i++) { hash = ((hash << 5) - hash) + raw.charCodeAt(i); hash = hash & hash; }
+      const fp = 'FP_' + Math.abs(hash).toString(16).toUpperCase();
+      localStorage.setItem('user_fp', fp);
+      return fp;
+    } catch(e) { return 'FP_TEMP_' + Math.floor(Math.random() * 100000); }
+  }
 
-  <section class="card" id="dataCard" style="display:none">
-    <h2 class="card-title">通道状态与投票</h2>
-    <div class="admin-list" id="channelList">加载中…</div>
-  </section>
+  function copyText(text) {
+    if (!text || text === '—') { toast('暂无内容'); return; }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => toast('已复制'));
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.top = '-9999px';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      toast('已复制');
+    }
+  }
+  window.copyText = copyText;
 
-  <section class="card" id="configCard" style="display:none">
-    <h2 class="card-title">系统设置</h2>
-    <div class="input-group"><input type="text" id="cfgSiteKey" placeholder="Turnstile Site Key"></div>
-    <div class="input-group"><input type="text" id="cfgSecret" placeholder="Turnstile Secret Key"></div>
-    <div class="input-group"><input type="text" id="cfgCdk" placeholder="兑换码 CDK"></div>
-    <button class="btn btn-outline" id="saveConfigBtn">保存配置</button>
-  </section>
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-copy]');
+    if (btn) copyText($(btn.dataset.copy).textContent);
+  });
 
-  <section class="card" id="userCard" style="display:none">
-    <h2 class="card-title">已使用用户</h2>
-    <div class="admin-list" id="userList">加载中…</div>
-  </section>
-</main>
+  function log(msg, type) {
+    const line = document.createElement('div');
+    line.className = 'log-line' + (type ? ' log-' + type : '');
+    line.textContent = `[${new Date().toLocaleTimeString('zh-CN', { hour12: false })}] ${msg}`;
+    $('log').appendChild(line);
+    $('log').scrollTop = $('log').scrollHeight;
+  }
 
-<div class="snackbar" id="snackbar"></div>
-<script src="admin.js"></script>
-</body>
-</html>
+  async function loadInfo() {
+    try {
+      const res = await fetch(buildUrl("/info"), { cache: 'no-store' });
+      const data = await res.json();
+      if (data.ok) {
+        if (!data.username) {
+          $('bindModal').classList.add('show');
+          showBindTurnstile();
+          return;
+        }
+
+        $('usedCount').textContent = data.used;
+        $('totalUsed').textContent = data.today_total_used;
+        $('totalUsers').textContent = data.today_user_count;
+
+        if (data.is_vip) {
+          isVipMode = true;
+          $('userStatusText').textContent = `【无限额度】极速体验中`;
+        } else {
+          $('userStatusText').textContent = `剩余可用次数 ${data.remaining}`;
+        }
+
+        if (data.status === 'banned') {
+          $('getBtn').disabled = true; $('btnText').textContent = '已封禁';
+          $('userStatusText').textContent = '您的设备已被封禁';
+          $('userStatusText').style.color = 'var(--md-error)';
+          return;
+        }
+
+        if (data.remaining <= 0 && !data.is_vip) {
+          $('getBtn').disabled = true; $('btnText').textContent = '额度已用完';
+        } else {
+          $('getBtn').disabled = false; $('btnText').textContent = '获取';
+        }
+      }
+    } catch (e) {
+      if ($('btnText').textContent === '加载中') {
+        $('getBtn').disabled = false; $('btnText').textContent = '获取';
+        $('userStatusText').textContent = '连接失败，请刷新重试';
+      }
+    }
+  }
+
+  async function vote(action) {
+    if (!currentChannelId) return;
+    $('voteGroup').style.pointerEvents = 'none';
+    try {
+      await fetch(buildUrl("/vote", { channel: currentChannelId, action }));
+      toast(action === 'up' ? '已推荐该通道' : '已不推荐该通道');
+    } catch(e) {}
+  }
+  window.vote = vote;
+
+  $('profileBtn').addEventListener('click', async () => {
+    try {
+      const res = await fetch(buildUrl("/info"));
+      const data = await res.json();
+      if (data.ok) {
+        $('profUid').textContent = data.username || '未绑定';
+        $('profQuota').textContent = data.is_vip ? '无限' : data.remaining;
+        $('profStatus').textContent = data.status === 'banned' ? '封禁' : '正常';
+        $('profStatus').style.color = data.status === 'banned' ? 'var(--md-error)' : '#386A20';
+        $('profRole').textContent = data.is_vip ? '无限额度' : '普通用户';
+        $('profileModal').classList.add('show');
+      }
+    } catch(e) { toast('获取信息失败'); }
+  });
+  $('closeProfileBtn').addEventListener('click', () => $('profileModal').classList.remove('show'));
+
+  let bindWidgetId = null;
+  async function showBindTurnstile() {
+    try {
+      const res = await fetch(buildUrl("/info"));
+      const data = await res.json();
+      const siteKey = data.turnstile_site_key;
+      if (!siteKey) return;
+      const container = $('turnstile-container');
+      container.innerHTML = '';
+      bindWidgetId = turnstile.render(container, {
+        sitekey: siteKey,
+        theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'
+      });
+    } catch(e) {}
+  }
+
+  $('bindBtn').addEventListener('click', async () => {
+    const username = $('bindUsername').value.trim();
+    if (!username) return toast('请输入用户名');
+    const token = turnstile.getResponse(bindWidgetId);
+    if (!token) return toast('请完成人机验证');
+    
+    $('bindBtn').disabled = true;
+    $('bindBtn').textContent = '绑定中...';
+
+    try {
+      const res = await fetch(buildUrl("/bind", { username, turnstile_token: token }));
+      const data = await res.json();
+      if (data.ok) {
+        toast('绑定成功');
+        $('bindModal').classList.remove('show');
+        loadInfo();
+      } else {
+        toast(data.error);
+        $('bindBtn').disabled = false;
+        $('bindBtn').textContent = '确认绑定';
+      }
+    } catch(e) {
+      toast('网络错误');
+      $('bindBtn').disabled = false;
+      $('bindBtn').textContent = '确认绑定';
+    }
+  });
+
+  let progressInterval;
+  function startProgress() {
+    $('progressWrap').classList.add('show');
+    $('progressBar').style.width = '0%';
+    let p = 0;
+    progressInterval = setInterval(() => {
+      if (p < 30) p += 10; else if (p < 60) p += 5; else if (p < 90) p += 1;
+      $('progressBar').style.width = p + '%';
+    }, 200);
+  }
+  function stopProgress() {
+    clearInterval(progressInterval);
+    $('progressBar').style.width = '100%';
+    setTimeout(() => { $('progressWrap').classList.remove('show'); }, 300);
+  }
+
+  async function doFetch() {
+    if (busy) return;
+    busy = true;
+    $('getBtn').disabled = true;
+    $('spinner').classList.add('on');
+    $('btnText').textContent = '获取中…';
+    $('voteGroup').style.display = 'none';
+    
+    $('outChannel').textContent = '来源通道 —';
+    $('outUser').textContent = '—';
+    $('outPass').textContent = '—';
+    $('outCookie').textContent = '—';
+    
+    startProgress();
+
+    try {
+      const claimRes = await fetch(buildUrl("/claim"), { cache: 'no-store' });
+      const claimData = await claimRes.json();
+
+      if (!claimData.ok) throw new Error(claimData.error || '获取失败');
+
+      currentChannelId = claimData.channel;
+      $('outChannel').textContent = `来源通道 ${claimData.channel}`;
+      $('voteGroup').style.display = 'flex';
+      $('voteGroup').style.pointerEvents = 'auto';
+
+      $('outUser').textContent = claimData.username;
+      $('outPass').textContent = claimData.password;
+      log(`账号获取成功！剩余 ${isVipMode ? '∞' : claimData.remaining} 次`, 'ok');
+
+      $('btnText').textContent = '转换中…';
+
+      const convRes = await fetch(buildUrl("/convert", {
+        username: claimData.username,
+        password: claimData.password,
+        key: claimData.channel_key,
+        refund: "true"
+      }));
+      const convData = await convRes.json();
+
+      if (!convData.ok) throw new Error(convData.error || 'Cookie 转换失败');
+
+      $('outCookie').textContent = convData.cookies;
+      stopProgress();
+      log(`Cookie 转换成功`, 'ok');
+      toast('获取成功');
+      
+      let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
+      history.unshift({ time: new Date().toLocaleString('zh-CN', { hour12: false }), username: claimData.username, password: claimData.password, cookies: convData.cookies });
+      if (history.length > 50) history.pop();
+      localStorage.setItem('cookies_history', JSON.stringify(history));
+      renderHistory();
+      loadInfo();
+
+    } catch (e) {
+      stopProgress();
+      log(`失败: ${e.message}`, 'err');
+      toast(e.message);
+    } finally {
+      busy = false;
+      $('spinner').classList.remove('on');
+      if ($('btnText').textContent !== '已封禁' && $('btnText').textContent !== '额度已用完') {
+        $('getBtn').disabled = false;
+        $('btnText').textContent = '获取';
+      }
+    }
+  }
+
+  function renderHistory(keyword = '') {
+    let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
+    if (keyword) {
+      keyword = keyword.toLowerCase();
+      history = history.filter(h => 
+        (h.username && h.username.toLowerCase().includes(keyword)) || (h.cookies && h.cookies.toLowerCase().includes(keyword))
+      );
+    }
+    if (history.length === 0) {
+      $('historyList').innerHTML = '<div style="font-size:12px;color:var(--md-on-surface-variant);text-align:center;padding:12px;">暂无记录</div>';
+      return;
+    }
+    
+    $('historyList').innerHTML = history.map((h, i) => `
+      <div class="history-item">
+        <div class="history-time">${h.time}</div>
+        <div class="history-data-row"><span>账号:</span> ${h.username}</div>
+        <div class="history-data-row"><span>密码:</span> ${h.password}</div>
+        <div class="cookie-block">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <span style="color:var(--md-on-surface-variant); font-size:12px;">Cookie</span>
+            <button class="text-button" onclick="copyText('${h.cookies.replace(/'/g, "\\'")}')">复制</button>
+          </div>
+          <div class="cookie-content">${h.cookies || '无'}</div>
+        </div>
+        <div class="history-actions">
+          <button class="hist-btn primary" onclick="convertHistory(${i})">转为曲奇</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.convertHistory = async (index) => {
+    let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
+    const h = history[index];
+    if(!h) return;
+    toast('正在转换...');
+    
+    try {
+      const res = await fetch(buildUrl("/convert", { username: h.username, password: h.password, key: 'default' }));
+      const data = await res.json();
+      if (data.ok && data.cookies) {
+        $('outUser').textContent = h.username;
+        $('outPass').textContent = h.password;
+        $('outCookie').textContent = data.cookies;
+        history[index].cookies = data.cookies;
+        localStorage.setItem('cookies_history', JSON.stringify(history));
+        renderHistory($('historySearch').value);
+        toast('转换成功');
+      } else {
+        toast(data.error || '转换失败');
+      }
+    } catch(e) { toast('网络异常'); }
+  };
+
+  $('historySearch').addEventListener('input', (e) => renderHistory(e.target.value));
+
+  // === 设置面板逻辑 ===
+  $('settingsBtn').addEventListener('click', () => $('settingsModal').classList.add('show'));
+  $('closeSettingsBtn').addEventListener('click', () => $('settingsModal').classList.remove('show'));
+
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    $('darkModeToggle').checked = theme === 'dark';
+  }
+  applyTheme(mq.matches ? 'dark' : 'light');
+  
+  $('darkModeToggle').addEventListener('change', (e) => {
+    applyTheme(e.target.checked ? 'dark' : 'light');
+  });
+
+  const COLORS = ['purple', 'blue', 'green', 'orange'];
+  document.querySelectorAll('.color-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      const color = dot.dataset.color;
+      document.documentElement.dataset.color = color;
+      localStorage.setItem('md_color', color);
+      document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+    });
+  });
+
+  if (localStorage.getItem('ignore_votes') === 'true') {
+    $('ignoreVotesSetting').checked = true;
+  }
+  $('ignoreVotesSetting').addEventListener('change', (e) => {
+    localStorage.setItem('ignore_votes', e.target.checked);
+  });
+
+  (async function init() {
+    let savedColor = localStorage.getItem('md_color') || 'purple';
+    document.documentElement.dataset.color = savedColor;
+    document.querySelectorAll('.color-dot').forEach(d => {
+      if (d.dataset.color === savedColor) d.classList.add('active');
+    });
+
+    try { userFp = await generateFingerprint(); } catch(e) { userFp = 'FP_FALLBACK_' + Date.now(); }
+    await loadInfo(); 
+    if ($('btnText').textContent === '加载中') {
+      $('getBtn').disabled = false; $('btnText').textContent = '获取';
+    }
+    $('getBtn').addEventListener('click', () => doFetch());
+    renderHistory();
+  })();
+})();
