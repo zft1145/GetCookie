@@ -38,14 +38,18 @@ function hashStr(str) {
   return hash.toString(16);
 }
 
+// 修复签名验证逻辑，避免 URL 编码问题
 function verifySignature(url, sign) {
   if (!sign) return false;
   const t = parseInt(url.searchParams.get("t") || "0", 10);
   if (Date.now() - t > 300000) return false;
   
-  const params = new URLSearchParams(url.search);
-  params.delete("sign");
-  const str = params.toString() + SIGN_SECRET;
+  let str = SIGN_SECRET + "&t=" + t;
+  const keys = [];
+  url.searchParams.forEach((v, k) => { if(k !== "sign") keys.push(k); });
+  keys.sort();
+  keys.forEach(k => { str += "&" + k + "=" + url.searchParams.get(k); });
+  
   return hashStr(str) === sign;
 }
 
@@ -213,13 +217,13 @@ export default {
       if (user.date !== getTodayStr()) { user.count = 0; user.date = getTodayStr(); }
       const limit = calcDynamicLimit(user.vip, user.count);
 
-      // 计算今日总消耗和总人数
+      // 修复数据统计：只要有 username 就计入用户数
       let todayTotalUsed = 0;
       let todayUserCount = 0;
       for (const k in users) {
         if (users[k].date === getTodayStr()) {
           todayTotalUsed += users[k].count || 0;
-          if (users[k].count > 0) todayUserCount++;
+          if (users[k].username) todayUserCount++;
         }
       }
 
