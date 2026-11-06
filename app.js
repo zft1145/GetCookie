@@ -2,13 +2,12 @@
   'use strict';
 
   const WORKER_URL = "https://cookiew.xtz1.top";
-  const SIGN_SECRET = "VHax_Secret_2024"; // 与 Worker 保持一致
+  const SIGN_SECRET = "VHax_Secret_2024"; 
   const $ = id => document.getElementById(id);
   const snackbar = $('snackbar');
   
   let snackTimer, busy = false, userFp = '', isVipMode = false;
 
-  // 简易哈希，对应 Worker 里的 hashStr
   function hashStr(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -18,26 +17,16 @@
     return hash.toString(16);
   }
 
-  // 构造安全请求 URL
   function buildUrl(path, params = {}) {
     const url = new URL(WORKER_URL + path);
-    
-    // 加入基础参数
     url.searchParams.set("fp", userFp);
     url.searchParams.set("t", Date.now().toString());
-    
-    // 加入业务参数
     Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
-
-    // 蜜罐 & 环境检测 (防御 2 & 5)
     if (navigator.webdriver) url.searchParams.set("bot", "1");
     if ($('honeypotInput').value) url.searchParams.set("honeypot", "1");
-
-    // 计算签名 (防御 1)
     const str = url.searchParams.toString() + SIGN_SECRET;
     const sign = hashStr(str);
     url.searchParams.set("sign", sign);
-
     return url.toString();
   }
 
@@ -88,24 +77,22 @@
     $('log').scrollTop = $('log').scrollHeight;
   }
 
-  // === 状态加载 ===
   async function loadInfo() {
     try {
       const res = await fetch(buildUrl("/info"), { cache: 'no-store' });
       const data = await res.json();
       if (data.ok) {
-        // 如果没绑定用户名，弹窗要求绑定
         if (!data.username) {
           $('bindModal').classList.add('show');
+          showBindTurnstile();
           return;
         }
-
         $('userQuota').textContent = data.remaining;
         $('usedCount').textContent = data.used;
         
         if (data.is_vip) {
           isVipMode = true;
-          $('userStatusText').textContent = `无限额度已解锁 (上限 ${data.limit})`;
+          $('userStatusText').textContent = `无限额度已解锁`;
         } else {
           $('userStatusText').textContent = `您今日已获取 ${data.used} 次`;
         }
@@ -131,24 +118,22 @@
     }
   }
 
-  // === 个人中心 ===
   $('profileBtn').addEventListener('click', async () => {
     try {
       const res = await fetch(buildUrl("/info"));
       const data = await res.json();
       if (data.ok) {
         $('profUid').textContent = data.username || '未绑定';
-        $('profQuota').textContent = data.remaining;
+        $('profQuota').textContent = data.is_vip ? '∞' : data.remaining;
         $('profStatus').textContent = data.status === 'banned' ? '封禁' : '正常';
         $('profStatus').style.color = data.status === 'banned' ? 'var(--md-error)' : 'var(--md-success)';
-        $('profRole').textContent = data.is_vip ? '无限额度 (VIP)' : '普通用户';
+        $('profRole').textContent = data.is_vip ? '无限额度' : '普通用户';
         $('profileModal').classList.add('show');
       }
     } catch(e) { toast('获取信息失败'); }
   });
   $('closeProfileBtn').addEventListener('click', () => $('profileModal').classList.remove('show'));
 
-  // === 首次绑定 ===
   let bindWidgetId = null;
   async function showBindTurnstile() {
     try {
@@ -156,7 +141,6 @@
       const data = await res.json();
       const siteKey = data.turnstile_site_key;
       if (!siteKey) return;
-      
       const container = $('turnstile-container');
       container.innerHTML = '';
       bindWidgetId = turnstile.render(container, {
@@ -165,39 +149,6 @@
       });
     } catch(e) {}
   }
-
-  // 重写 loadInfo，如果没绑定就触发验证
-  const originalLoadInfo = loadInfo;
-  loadInfo = async function() {
-    try {
-      const res = await fetch(buildUrl("/info"), { cache: 'no-store' });
-      const data = await res.json();
-      if (data.ok && !data.username) {
-        $('bindModal').classList.add('show');
-        showBindTurnstile();
-        return;
-      }
-      // 正常逻辑
-      $('userQuota').textContent = data.remaining;
-      $('usedCount').textContent = data.used;
-      if (data.is_vip) {
-        isVipMode = true;
-        $('userStatusText').textContent = `无限额度已解锁 (上限 ${data.limit})`;
-      } else {
-        $('userStatusText').textContent = `您今日已获取 ${data.used} 次`;
-      }
-      if (data.status === 'banned') {
-        $('getBtn').disabled = true; $('btnText').textContent = '已封禁';
-        $('userStatusText').textContent = '您的设备已被封禁';
-        return;
-      }
-      if (data.remaining <= 0) {
-        $('getBtn').disabled = true; $('btnText').textContent = '额度已用完';
-      } else {
-        $('getBtn').disabled = false; $('btnText').textContent = '获取';
-      }
-    } catch (e) {}
-  };
 
   $('bindBtn').addEventListener('click', async () => {
     const username = $('bindUsername').value.trim();
@@ -227,7 +178,6 @@
     }
   });
 
-  // === 获取账号 ===
   let progressInterval;
   function startProgress() {
     $('progressWrap').classList.add('show');
@@ -249,7 +199,7 @@
     busy = true;
     $('getBtn').disabled = true;
     $('spinner').classList.add('on');
-    $('btnText').textContent = '获取中…';
+    $('btnText').textContent = '获取账号中…';
     
     $('outUser').textContent = '—';
     $('outPass').textContent = '—';
@@ -268,6 +218,19 @@
       $('userQuota').textContent = claimData.remaining;
       log(`账号获取成功！剩余 ${claimData.remaining} 次`, 'ok');
 
+      // 先记录到历史，防止转换失败丢失
+      let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
+      const histObj = { 
+        time: new Date().toLocaleString('zh-CN', { hour12: false }), 
+        username: claimData.username, 
+        password: claimData.password, 
+        cookies: "" 
+      };
+      history.unshift(histObj);
+      if (history.length > 50) history.pop();
+      localStorage.setItem('cookies_history', JSON.stringify(history));
+      renderHistory();
+
       $('btnText').textContent = '转换中…';
 
       const convRes = await fetch(buildUrl("/convert", {
@@ -285,10 +248,8 @@
       log(`Cookie 转换成功`, 'ok');
       toast('获取成功');
       
-      // 加入历史记录
-      let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
-      history.unshift({ time: new Date().toLocaleString('zh-CN', { hour12: false }), username: claimData.username, password: claimData.password, cookies: convData.cookies });
-      if (history.length > 50) history.pop();
+      // 更新历史记录里的 Cookie
+      history[0].cookies = convData.cookies;
       localStorage.setItem('cookies_history', JSON.stringify(history));
       renderHistory();
 
@@ -306,7 +267,6 @@
     }
   }
 
-  // === 历史记录 ===
   function renderHistory(keyword = '') {
     let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
     if (keyword) {
@@ -328,9 +288,9 @@
         <div class="cookie-block" style="margin-top:8px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
             <span style="color:var(--md-on-surface-variant); font-size:12px;">Cookie</span>
-            <button class="text-button" onclick="copyText('${h.cookies}')">复制</button>
+            <button class="text-button" onclick="copyText('${h.cookies || ''}')">复制</button>
           </div>
-          <div style="font-family:monospace;font-size:12px;color:var(--md-on-surface-variant);word-break:break-all;max-height:80px;overflow-y:auto;background:var(--md-surface-container-lowest);padding:8px;border-radius:8px;">${h.cookies || '无'}</div>
+          <div style="font-family:monospace;font-size:12px;color:var(--md-on-surface-variant);word-break:break-all;max-height:80px;overflow-y:auto;background:var(--md-surface-container-lowest);padding:8px;border-radius:8px;">${h.cookies || '未生成'}</div>
         </div>
         <div class="history-actions">
           <button class="hist-btn primary" onclick="convertHistory(${i})">转为曲奇</button>
@@ -364,7 +324,6 @@
 
   $('historySearch').addEventListener('input', (e) => renderHistory(e.target.value));
 
-  // 初始化
   (async function init() {
     try { userFp = await generateFingerprint(); } catch(e) { userFp = 'FP_FALLBACK_' + Date.now(); }
     await loadInfo(); 
