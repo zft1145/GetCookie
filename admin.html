@@ -6,7 +6,7 @@
 <title>后台管理 · 4399</title>
 <style>
 :root {
-  --md-primary: #6750A4; --md-on-primary: #FFFFFF;
+  --md-primary: #005AC1; --md-on-primary: #FFFFFF;
   --md-surface: #FEF7FF; --md-surface-container-low: #F7F2FA;
   --md-surface-container: #F3EDF7; --md-surface-container-high: #ECE6F0;
   --md-surface-container-highest: #E6E0E9;
@@ -14,7 +14,7 @@
   --md-outline-variant: #CAC4D0; --md-error: #B3261E; --md-success: #386A20;
 }
 html[data-theme="dark"] {
-  --md-primary: #D0BCFF; --md-on-primary: #381E72;
+  --md-primary: #ADC6FF; --md-on-primary: #002E69;
   --md-surface: #141218; --md-surface-container-low: #1D1B20;
   --md-surface-container: #211F26; --md-surface-container-high: #2B2930;
   --md-surface-container-highest: #36343B;
@@ -56,9 +56,7 @@ body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', sans-serif; background:
 <main class="content">
   <section class="card" id="authCard" style="display:none">
     <h2 class="card-title">管理员鉴权</h2>
-    <div class="input-group">
-      <input type="password" id="adminKeyInput" placeholder="请输入管理员密钥">
-    </div>
+    <div class="input-group"><input type="password" id="adminKeyInput" placeholder="请输入管理员密钥"></div>
     <button class="btn" id="authBtn">验证进入</button>
   </section>
 
