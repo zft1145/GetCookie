@@ -75,8 +75,8 @@ html[data-theme="dark"][data-color="orange"] {
 body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; background-color: var(--md-surface); color: var(--md-on-surface); -webkit-font-smoothing: antialiased; padding-bottom: calc(80px + env(safe-area-inset-bottom)); transition: background-color 0.3s, color 0.3s; }
 
 .app-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; height: 64px; padding: 0 16px; background-color: var(--md-surface); }
-.app-bar h1 { margin: 0; font-size: 26px; font-weight: 700; flex: 1; letter-spacing: -0.5px; background: linear-gradient(135deg, var(--md-primary), #8E7CC3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.icon-button { width: 48px; height: 48px; border: none; border-radius: 50%; background: transparent; color: var(--md-on-surface-variant); display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: -12px; transition: background 0.2s, transform 0.2s; }
+.app-bar h1 { margin: 0; font-size: 26px; font-weight: 800; flex: 1; letter-spacing: -1px; color: var(--md-primary); }
+.icon-button { width: 48px; height: 48px; border: none; border-radius: 50%; background: transparent; color: var(--md-on-surface-variant); display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: -12px; transition: background 0.2s, transform 0.2s; z-index: 25; position: relative;}
 .icon-button:active { transform: scale(0.85); background: var(--md-surface-container-highest); }
 
 .container { max-width: 600px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
@@ -142,20 +142,20 @@ html[data-theme="dark"] .log-ok { color: #B6F09C; }
 .history-search { width: 100%; padding: 12px 16px; border-radius: 16px; border: 1px solid var(--md-outline-variant); background: var(--md-surface-container); color: var(--md-on-surface); margin-bottom: 16px; font-size: 14px; transition: border-color 0.2s, background 0.3s; }
 .history-search:focus { outline: none; border-color: var(--md-primary); }
 .history-list { display: flex; flex-direction: column; gap: 16px; max-height: 400px; overflow-y: auto; padding-right: 4px; }
-.history-item { background: var(--md-surface-container); padding: 16px; border-radius: 20px; font-size: 14px; display: flex; flex-direction: column; gap: 10px; transition: background 0.3s; }
+.history-item { background: var(--md-surface-container); padding: 16px; border-radius: 20px; font-size: 14px; display: flex; flex-direction: column; gap: 10px; transition: background 0.3s; overflow: hidden; }
 .history-time { color: var(--md-on-surface-variant); font-size: 12px; }
 .history-data-row { font-family: ui-monospace, monospace; word-break: break-all; }
 .history-data-row span { color: var(--md-on-surface-variant); font-family: 'Roboto', sans-serif; }
-.history-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.history-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px;}
 .hist-btn { background: var(--md-surface-container-highest); color: var(--md-on-surface); border: none; padding: 8px 16px; border-radius: 100px; font-size: 13px; cursor: pointer; transition: background 0.2s, transform 0.1s; }
 .hist-btn:active { transform: scale(0.92); }
 .hist-btn.primary { background: var(--md-primary); color: var(--md-on-primary); }
 
-/* 修复历史记录中的曲奇框样式，避免被遮挡 */
-.history-item .cookie-block { background: var(--md-surface-container-high); border-radius: 16px; padding: 12px; overflow: hidden; }
+/* 修复历史记录中的曲奇框样式，解决直角和遮挡 */
+.history-item .cookie-block { background: var(--md-surface-container-high); border-radius: 16px; padding: 12px; margin-top: 4px; overflow: hidden; }
 .history-item .cookie-content { max-height: 80px; padding: 12px; border-radius: 12px; font-size: 12px; }
 
-.watermark { position: fixed; top: 16px; right: 108px; z-index: 10; background: rgba(103, 80, 164, 0.15); color: var(--md-primary); padding: 6px 12px; border-radius: 100px; font-size: 11px; font-weight: 600; text-decoration: none; opacity: 0.6; transition: opacity 0.2s; }
+.watermark { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 5; color: var(--md-primary); padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 600; text-decoration: none; opacity: 0.2; pointer-events: none; }
 .watermark:active { opacity: 1; }
 
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
@@ -193,7 +193,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
 </head>
 <body>
 
-<a href="https://qm.qq.com/q/Qa24XBm0w4" target="_blank" class="watermark">By VHax</a>
+<a href="https://qm.qq.com/q/Qa24XBm0w4" target="_blank" class="watermark">XTZ Cookie by VHax</a>
 
 <header class="app-bar">
   <h1>XTZ Cookie</h1>
@@ -211,8 +211,8 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   <section class="card">
     <div class="status-layout">
       <div class="status-item">
-        <div class="result-label">可用次数</div>
-        <div class="status-value" id="userQuota">-</div>
+        <div class="result-label">今日已用</div>
+        <div class="status-value" id="usedCount" style="color:var(--md-primary)">-</div>
       </div>
       <div class="status-divider"></div>
       <div class="status-item">
@@ -291,7 +291,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
       </div>
       <div class="grid-row">
         <div class="result-item" style="padding:12px;">
-          <div class="result-label">当前额度</div>
+          <div class="result-label">今日已用</div>
           <div class="result-text" id="profQuota">—</div>
         </div>
         <div class="result-item" style="padding:12px;">
