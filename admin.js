@@ -10,7 +10,7 @@
     snackTimer = setTimeout(() => $('snackbar').classList.remove('show'), 2200);
   }
 
-  function getDynamicLimit(isVip, count) {
+  function calcDynamicLimit(isVip, count) {
     if (!isVip) return 20;
     if (count >= 30) return 100;
     if (count >= 15) return 81;
@@ -62,16 +62,13 @@
       } else {
         $('userList').innerHTML = userKeys.map(fp => {
           const u = data.users[fp];
-          const vipBadge = u.vip ? `<span style="color:#FFF;background:var(--md-primary);font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;">VIP</span>` : '';
-          
-          // 显示动态上限的具体数字
-          const currentLimit = getDynamicLimit(u.vip, u.count);
-          
+          const vipBadge = u.vip ? `<span style="color:#FFF;background:var(--md-primary);font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;">特权</span>` : '';
+          const limit = calcDynamicLimit(u.vip, u.count);
           return `
           <div class="admin-item">
             <div>
               <strong>${u.username || '未绑定'} (${fp}) ${vipBadge}</strong><br>
-              <span style="font-size:12px;color:var(--md-on-surface-variant)">今日已用: ${u.count} / ${currentLimit}</span>
+              <span style="font-size:12px;color:var(--md-on-surface-variant)">已用: ${u.count} | 动态上限: ${limit}</span>
             </div>
             <div style="display:flex; gap:4px;">
               <button class="copy-btn" onclick="resetUserQuota('${fp}')" style="color:var(--md-primary)">重置</button>
@@ -139,17 +136,36 @@
     toast('配置已保存');
   });
 
-  if (ADMIN_KEY) loadData();
-  else $('authCard').style.display = 'block';
+  $('settingsBtn').addEventListener('click', () => $('settingsModal').classList.add('show'));
+  $('closeSettingsBtn').addEventListener('click', () => $('settingsModal').classList.remove('show'));
 
-  const mq = window.matchMedia('(prefers-color-scheme: dark)');
-  function applyTheme(theme) {
+  $('themeSetting').checked = document.documentElement.dataset.theme === 'dark';
+  $('themeSetting').addEventListener('change', (e) => {
+    const theme = e.target.checked ? 'dark' : 'light';
     document.documentElement.dataset.theme = theme;
-    $('iconSun').style.display = theme === 'dark' ? 'none' : '';
-    $('iconMoon').style.display = theme === 'dark' ? '' : 'none';
-  }
-  applyTheme(mq.matches ? 'dark' : 'light');
-  $('themeBtn').addEventListener('click', () => {
-    applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+    localStorage.setItem('md_theme', theme);
   });
+
+  window.setColor = (color) => {
+    document.documentElement.dataset.color = color;
+    localStorage.setItem('md_color', color);
+    document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+    $('dot-' + color).classList.add('active');
+  };
+
+  (function init() {
+    const savedTheme = localStorage.getItem('md_theme');
+    if (savedTheme) {
+      document.documentElement.dataset.theme = savedTheme;
+    } else {
+      document.documentElement.dataset.theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    $('themeSetting').checked = document.documentElement.dataset.theme === 'dark';
+
+    const savedColor = localStorage.getItem('md_color') || 'purple';
+    setColor(savedColor);
+
+    if (ADMIN_KEY) loadData();
+    else $('authCard').style.display = 'block';
+  })();
 })();
