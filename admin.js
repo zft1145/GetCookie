@@ -10,6 +10,16 @@
     snackTimer = setTimeout(() => $('snackbar').classList.remove('show'), 2200);
   }
 
+  function getDynamicLimit(isVip, count) {
+    if (!isVip) return 20;
+    if (count >= 30) return 100;
+    if (count >= 15) return 81;
+    if (count >= 10) return 62;
+    if (count >= 5) return 47;
+    if (count >= 3) return 36;
+    return 25;
+  }
+
   async function loadData() {
     if (!ADMIN_KEY) return;
     try {
@@ -53,12 +63,15 @@
         $('userList').innerHTML = userKeys.map(fp => {
           const u = data.users[fp];
           const vipBadge = u.vip ? `<span style="color:#FFF;background:var(--md-primary);font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;">VIP</span>` : '';
-          const limit = u.vip ? '动态上限' : 20;
+          
+          // 显示动态上限的具体数字
+          const currentLimit = getDynamicLimit(u.vip, u.count);
+          
           return `
           <div class="admin-item">
             <div>
               <strong>${u.username || '未绑定'} (${fp}) ${vipBadge}</strong><br>
-              <span style="font-size:12px;color:var(--md-on-surface-variant)">今日已用: ${u.count} / ${limit}</span>
+              <span style="font-size:12px;color:var(--md-on-surface-variant)">今日已用: ${u.count} / ${currentLimit}</span>
             </div>
             <div style="display:flex; gap:4px;">
               <button class="copy-btn" onclick="resetUserQuota('${fp}')" style="color:var(--md-primary)">重置</button>
