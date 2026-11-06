@@ -45,13 +45,9 @@ function verifySignature(url, sign) {
   
   const params = new URLSearchParams(url.search);
   params.delete("sign");
-  
-  // 按字母排序，确保前后端一致
-  const keys = Array.from(params.keys()).sort();
-  let str = '';
-  keys.forEach(k => { str += k + '=' + params.get(k); });
-  
-  return hashStr(str + SIGN_SECRET) === sign;
+  // 恢复原生 toString()，保证前后端一致
+  const str = params.toString() + SIGN_SECRET;
+  return hashStr(str) === sign;
 }
 
 function calcDynamicLimit(isVip, count) {
