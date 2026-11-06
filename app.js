@@ -352,4 +352,4 @@
     $('getBtn').addEventListener('click', () => doFetch());
     renderHistory();
   })();
-})();
+})()
