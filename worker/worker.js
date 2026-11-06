@@ -1,7 +1,6 @@
 const API = "https://api.4399pc.cc";
 const ALLOWED_ORIGIN = "https://cookie.xtz1.top"; 
-const DAILY_LIMIT_NORMAL = 20;
-const DAILY_LIMIT_VIP = 45;
+const SIGN_SECRET = "VHax_Secret_2024"; // 签名密钥
 
 function corsHeaders(origin) {
   const allow = origin || "*";
@@ -30,6 +29,40 @@ function getTodayStr() {
 const obfuscate = (str) => btoa(str.split('').reverse().join(''));
 const deobfuscate = (str) => atob(str).split('').reverse().join('');
 
+// 简易哈希，用于签名校验 (实际生产可用 MD5 库，这里用简单实现防篡改)
+function hashStr(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash.toString(16);
+}
+
+// 校验签名
+function verifySignature(url, sign) {
+  if (!sign) return false;
+  const t = parseInt(url.searchParams.get("t") || "0", 10);
+  if (Date.now() - t > 300000) return false; // 5分钟过期
+  
+  // 移除 sign 参数后重新拼接校验
+  const params = new URLSearchParams(url.search);
+  params.delete("sign");
+  const str = params.toString() + SIGN_SECRET;
+  return hashStr(str) === sign;
+}
+
+// 动态获取 VIP 上限
+function getDynamicLimit(isVip, count) {
+  if (!isVip) return 20;
+  if (count >= 30) return 100;
+  if (count >= 15) return 81;
+  if (count >= 10) return 62;
+  if (count >= 5) return 47;
+  if (count >= 3) return 36;
+  return 25;
+}
+
 async function fetchJson(url, ms = 8000) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
@@ -40,7 +73,6 @@ async function fetchJson(url, ms = 8000) {
     try { data = JSON.parse(text); } catch (e) { data = { raw: text.slice(0, 300) }; }
     return { data, status: res.status };
   } catch (e) {
-    if (e.name === "AbortError") throw new Error(`请求超时`);
     throw e;
   } finally {
     clearTimeout(timer);
@@ -88,28 +120,7 @@ async function verifyTurnstile(token, secret) {
     const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: formData });
     const data = await res.json();
     return data.success;
-  } catch (e) {
-    return false;
-  }
-}
-
-function getRandomChannel(channels, ignoreVotes) {
-  const active = channels.filter(c => c.active);
-  if (active.length === 0) return null;
-  if (ignoreVotes || active.length === 1) return active[Math.floor(Math.random() * active.length)];
-  
-  const weighted = active.map(c => {
-    let w = 1 + (c.votes || 0);
-    if (w < 0.1) w = 0.1;
-    return { c, w };
-  });
-  const totalWeight = weighted.reduce((sum, item) => sum + item.w, 0);
-  let random = Math.random() * totalWeight;
-  for (const item of weighted) {
-    if (random < item.w) return item.c;
-    random -= item.w;
-  }
-  return active[0];
+  } catch (e) { return false; }
 }
 
 export default {
@@ -124,6 +135,7 @@ export default {
       if (!env || !env['4399kv']) return json({ ok: false, error: "服务器错误：未绑定 KV" }, 500, origin);
       const kv = env['4399kv'];
 
+      // === 管理员接口：不校验签名，但校验 Key ===
       if (path === "/admin/api") {
         const clientKey = url.searchParams.get("key");
         let adminKey = await kv.get("admin_key");
@@ -132,10 +144,7 @@ export default {
           adminKey = "XJ9k-mP4q-W2nV";
           await kv.put("admin_key", adminKey);
           await kv.put("config", JSON.stringify({ turnstile_site_key: "", turnstile_secret: "", cdk: "VHaxAgentXTZCookieWebsite" }));
-          const defaultChannels = [
-            { id: 1, name: "通道 1", key: obfuscate("aku_9747f851a78b44dfbc337368edd45b8e61676e33"), active: true, votes: 0 }
-          ];
-          await kv.put("channels", JSON.stringify(defaultChannels));
+          await kv.put("channels", JSON.stringify([{ id: 1, name: "通道 1", key: obfuscate("aku_9747f851a78b44dfbc337368edd45b8e61676e33"), active: true, votes: 0 }]));
         }
 
         if (clientKey !== adminKey) return json({ ok: false, error: "密钥错误" }, 403, origin);
@@ -183,7 +192,6 @@ export default {
             if (users[body.fingerprint]) {
               users[body.fingerprint].count = 0;
               users[body.fingerprint].suspicion = 0;
-              users[body.fingerprint].req_times = [];
               await kv.put("users", JSON.stringify(users));
             }
             return json({ ok: true }, 200, origin);
@@ -192,169 +200,116 @@ export default {
         return json({ ok: false, error: "Invalid Request" }, 400, origin);
       }
 
-      if (path === "/vote") {
-        const channelId = parseInt(url.searchParams.get("channel"), 10);
-        const action = url.searchParams.get("action");
-        if (!channelId || !action) return json({ ok: false, error: "参数错误" }, 400, origin);
-        let channels = JSON.parse(await kv.get("channels") || "[]");
-        channels = channels.map(c => {
-           if (c.id === channelId) {
-              if (action === 'up') c.votes = (c.votes || 0) + 1;
-              if (action === 'down') c.votes = (c.votes || 0) - 1;
-           }
-           return c;
-        });
-        await kv.put("channels", JSON.stringify(channels));
-        return json({ ok: true }, 200, origin);
+      // === 以下是用户接口，需经过严格防御检测 ===
+
+      // 1. 静默防御：环境检测 & 蜜罐
+      if (url.searchParams.get("bot") === "1" || url.searchParams.get("honeypot") === "1") {
+        // 直接返回假数据或 200 让爬虫以为成功，静默拦截
+        return json({ ok: true, status: "ok", cookies: "fake_data_silent_ban", remaining: 0, used: 0 }, 200, origin);
       }
 
-      if (path === "/redeem") {
-        const fingerprint = url.searchParams.get("fp");
-        const cdkInput = url.searchParams.get("cdk");
-        if (!fingerprint || !cdkInput) return json({ ok: false, error: "参数错误" }, 400, origin);
-        const [configStr, usersStr] = await Promise.all([kv.get("config"), kv.get("users")]);
-        let config = JSON.parse(configStr || "{}");
-        if (cdkInput.trim() !== config.cdk) return json({ ok: false, error: "兑换码无效" }, 400, origin);
-        let users = JSON.parse(usersStr || "{}");
-        let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", req_times: [] };
-        user.vip = true; 
-        users[fingerprint] = user;
-        await kv.put("users", JSON.stringify(users));
-        return json({ ok: true, msg: "兑换成功！已解锁无限额度" }, 200, origin);
+      // 2. 签名校验
+      const sign = url.searchParams.get("sign");
+      if (!verifySignature(url, sign)) {
+        // 签名错误，静默处理，不暴露真实错误
+        return json({ ok: false, error: "网络异常，请刷新重试" }, 403, origin);
       }
 
+      const fingerprint = url.searchParams.get("fp");
+      if (!fingerprint) return json({ ok: false, error: "缺少参数" }, 400, origin);
+
+      const [usersStr, channelsStr, configStr] = await Promise.all([kv.get("users"), kv.get("channels"), kv.get("config")]);
+      let users = JSON.parse(usersStr || "{}");
+      let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", vip: false, username: "" };
+      let config = JSON.parse(configStr || "{}");
+
+      if (user.date !== getTodayStr()) { user.count = 0; user.date = getTodayStr(); }
+      
+      const limit = getDynamicLimit(user.vip, user.count);
+
+      // === /info 接口 (供个人中心展示) ===
       if (path === "/info") {
-        const fingerprint = url.searchParams.get("fp");
-        if (!fingerprint) return json({ ok: false, error: "缺少设备指纹" }, 400, origin);
-        const [usersStr, configStr] = await Promise.all([kv.get("users"), kv.get("config")]);
-        let users = JSON.parse(usersStr || "{}");
-        let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", vip: false };
-        if (user.date !== getTodayStr()) user.count = 0;
-        let config = JSON.parse(configStr || "{}");
-        const limit = user.vip ? DAILY_LIMIT_VIP : DAILY_LIMIT_NORMAL;
         return json({
           ok: true,
+          uid: fingerprint,
+          username: user.username || "",
           remaining: Math.max(0, limit - user.count),
           used: user.count,
-          totalUsers: Object.keys(users).length,
+          limit: limit,
           status: user.status,
           is_vip: user.vip || false,
           turnstile_site_key: config.turnstile_site_key || ""
         }, 200, origin);
       }
 
+      // === /bind 接口 (首登绑定) ===
+      if (path === "/bind") {
+        const token = url.searchParams.get("turnstile_token");
+        const username = url.searchParams.get("username");
+        if (!token || !username) return json({ ok: false, error: "参数不全" }, 400, origin);
+        
+        const isValid = await verifyTurnstile(token, config.turnstile_secret);
+        if (!isValid) return json({ ok: false, error: "人机验证失败" }, 403, origin);
+
+        user.username = username;
+        users[fingerprint] = user;
+        await kv.put("users", JSON.stringify(users));
+        return json({ ok: true, msg: "绑定成功" }, 200, origin);
+      }
+
+      if (user.status === "banned") return json({ ok: false, error: "已被封禁" }, 403, origin);
+      if (user.count >= limit) return json({ ok: false, error: "额度已用完，请明天再来" }, 429, origin);
+
+      // === /claim 接口 ===
       if (path === "/claim") {
-        const fingerprint = url.searchParams.get("fp");
-        const ignoreVotes = url.searchParams.get("ignore_votes") === "true";
-        if (!fingerprint) return json({ ok: false, error: "缺少设备指纹" }, 400, origin);
-
-        const [usersStr, channelsStr, configStr] = await Promise.all([kv.get("users"), kv.get("channels"), kv.get("config")]);
-        let users = JSON.parse(usersStr || "{}");
-        let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", vip: false, suspicion: 0, last_time: 0 };
-        let config = JSON.parse(configStr || "{}");
-
-        if (user.status === "banned") return json({ ok: false, error: "已被封禁" }, 403, origin);
-        if (user.date !== getTodayStr()) { user.count = 0; user.date = getTodayStr(); }
-        
-        const limit = user.vip ? DAILY_LIMIT_VIP : DAILY_LIMIT_NORMAL;
-        if (user.count >= limit) return json({ ok: false, error: "网络错误，请稍后再试" }, 429, origin);
-
-        // 怀疑值风控逻辑
-        const now = Math.floor(Date.now() / 1000);
-        if (!user.last_time || now - user.last_time > 60) user.suspicion = 0;
-        user.suspicion = (user.suspicion || 0) + 0.5;
-        user.last_time = now;
-        
-        const riskLimit = user.vip ? 5 : 3;
-        if (user.suspicion >= riskLimit) {
-          const token = url.searchParams.get("turnstile_token");
-          if (!token) return json({ ok: false, need_turnstile: true, error: "触发风控，请完成验证" }, 403, origin);
-          const isValid = await verifyTurnstile(token, config.turnstile_secret);
-          if (!isValid) return json({ ok: false, need_turnstile: true, error: "验证失败，请重试" }, 403, origin);
-          user.suspicion = 0; // 验证通过后重置
-        }
-
         let channels = JSON.parse(channelsStr || "[]");
-        const channel = getRandomChannel(channels, ignoreVotes);
-        if (!channel) return json({ ok: false, error: "无可用通道" }, 503, origin);
+        const activeChannels = channels.filter(c => c.active);
+        if (activeChannels.length === 0) return json({ ok: false, error: "无可用通道" }, 503, origin);
         
+        // 简单随机，暂不处理投票
+        const channel = activeChannels[Math.floor(Math.random() * activeChannels.length)];
         const realKey = deobfuscate(channel.key);
+        
         const u = new URL(API + "/claim_by_key");
         u.searchParams.set("key", realKey);
         const claimR = await fetchJson(u.toString());
         
-        if (!claimR.data || claimR.data.code !== 1) {
-           return json({ ok: false, error: claimR.data?.msg || "领取失败" }, 200, origin);
-        }
+        if (!claimR.data || claimR.data.code !== 1) return json({ ok: false, error: "领取失败" }, 200, origin);
 
         user.count += 1;
         users[fingerprint] = user;
         await kv.put("users", JSON.stringify(users));
 
-        return json({
-          ok: true, 
-          channel: channel.id, 
-          channel_key: realKey,
-          username: claimR.data.username, 
-          password: claimR.data.password,
-          remaining: limit - user.count
-        }, 200, origin);
+        return json({ ok: true, channel: channel.id, channel_key: realKey, username: claimR.data.username, password: claimR.data.password, remaining: limit - user.count }, 200, origin);
       }
 
+      // === /convert 接口 ===
       if (path === "/convert") {
-  const fingerprint = url.searchParams.get("fp");
-  const username = url.searchParams.get("username");
-  const password = url.searchParams.get("password");
-  let key = url.searchParams.get("key");
-  const refund = url.searchParams.get("refund") === "true"; // 新增：是否需要退额
-  if (!username || !password || !fingerprint) return json({ ok: false, error: "缺少参数" }, 400, origin);
-
-        const [usersStr, channelsStr, configStr] = await Promise.all([kv.get("users"), kv.get("channels"), kv.get("config")]);
-        let users = JSON.parse(usersStr || "{}");
-        let user = users[fingerprint] || { count: 0, date: getTodayStr(), status: "active", vip: false, suspicion: 0, last_time: 0 };
-        let config = JSON.parse(configStr || "{}");
-
-        // 怀疑值风控逻辑
-        const now = Math.floor(Date.now() / 1000);
-        if (!user.last_time || now - user.last_time > 60) user.suspicion = 0;
-        user.suspicion = (user.suspicion || 0) + 0.5;
-        user.last_time = now;
-        
-        const riskLimit = user.vip ? 5 : 3;
-        if (user.suspicion >= riskLimit) {
-          const token = url.searchParams.get("turnstile_token");
-          if (!token) return json({ ok: false, need_turnstile: true, error: "触发风控，请完成验证" }, 403, origin);
-          const isValid = await verifyTurnstile(token, config.turnstile_secret);
-          if (!isValid) return json({ ok: false, need_turnstile: true, error: "验证失败，请重试" }, 403, origin);
-          user.suspicion = 0;
-        }
+        const username = url.searchParams.get("username");
+        const password = url.searchParams.get("password");
+        let key = url.searchParams.get("key");
+        const refund = url.searchParams.get("refund") === "true";
 
         if (!key || key === "default") {
-          let channels = JSON.parse(channelsStr || "[]");
-          const active = channels.filter(c => c.active);
+          let active = JSON.parse(channelsStr || "[]").filter(c => c.active);
           if (active.length > 0) key = deobfuscate(active[0].key);
-          else return json({ ok: false, error: "无可用通道进行转换" }, 503, origin);
         }
 
         const convR = await doConvertWithRetry(key, username, password);
-if (!convR.data || convR.data.code !== 1) {
-   if (refund) {
-       user.count = Math.max(0, user.count - 0.5);
-       users[fingerprint] = user;
-       await kv.put("users", JSON.stringify(users));
-       return json({ ok: false, error: "转换失败，已退还0.5额度" }, 200, origin);
-   }
-   return json({ ok: false, error: "转换失败，请稍后再试" }, 200, origin);
-}
-
-        users[fingerprint] = user;
-        await kv.put("users", JSON.stringify(users));
+        if (!convR.data || convR.data.code !== 1) {
+           if (refund) {
+             user.count = Math.max(0, user.count - 0.5);
+             users[fingerprint] = user;
+             await kv.put("users", JSON.stringify(users));
+           }
+           return json({ ok: false, error: "转换失败" }, 200, origin);
+        }
         return json({ ok: true, cookies: pickCookies(convR.data) }, 200, origin);
       }
 
       return json({ ok: false, error: "not found" }, 404, origin);
     } catch (e) {
-      return json({ ok: false, error: "Worker 异常: " + e.message }, 500, origin);
+      return json({ ok: false, error: "系统异常" }, 500, origin);
     }
   }
 };
