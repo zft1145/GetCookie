@@ -132,7 +132,7 @@ export default {
           adminKey = "XJ9k-mP4q-W2nV";
           await kv.put("admin_key", adminKey);
           await kv.put("config", JSON.stringify({ turnstile_site_key: "", turnstile_secret: "", cdk: "VHaxAgentXTZCookieWebsite" }));
-          await kv.put("channels", JSON.stringify([{ id: 1, name: "通道 1", key: obfuscate("aku_9747f851a78b44dfbc337368edd45b8e61676e33"), active: true, votes: 0 }]));
+          await kv.put("channels", JSON.stringify([{ id: 1, name: "A1", key: obfuscate("aku_9747f851a78b44dfbc337368edd45b8e61676e33"), active: true, votes: 0 }]));
         }
 
         if (clientKey !== adminKey) return json({ ok: false, error: "密钥错误" }, 403, origin);
@@ -163,7 +163,9 @@ export default {
           if (body.action === "add_channel") {
             let channels = JSON.parse(await kv.get("channels") || "[]");
             const newId = channels.length > 0 ? Math.max(...channels.map(c => c.id)) + 1 : 1;
-            channels.push({ id: newId, name: body.name, key: obfuscate(body.key), active: true, votes: 0 });
+            // 保证名称不为空
+            const newName = body.name && body.name.trim() ? body.name.trim() : `通道 ${newId}`;
+            channels.push({ id: newId, name: newName, key: obfuscate(body.key), active: true, votes: 0 });
             await kv.put("channels", JSON.stringify(channels));
             return json({ ok: true }, 200, origin);
           }
@@ -278,12 +280,14 @@ export default {
 
       if (path === "/claim" || path === "/convert") {
         const now = Math.floor(Date.now() / 1000);
-        if (!user.last_time || now - user.last_time > 60) user.suspicion = 0;
-        user.suspicion = (user.suspicion || 0) + 0.5;
+        let susp = Number(user.suspicion) || 0;
+        if (!user.last_time || now - user.last_time > 60) susp = 0;
+        susp = susp + 0.5;
+        user.suspicion = susp;
         user.last_time = now;
         
         const riskLimit = user.vip ? 5 : 3;
-        if (user.suspicion >= riskLimit) {
+        if (susp >= riskLimit) {
           const token = url.searchParams.get("turnstile_token");
           if (!token) return json({ ok: false, need_turnstile: true, error: "触发风控，请完成验证" }, 403, origin);
           const isValid = await verifyTurnstile(token, config.turnstile_secret);
@@ -313,7 +317,7 @@ export default {
         return json({ 
             ok: true, 
             channel: channel.id, 
-            channel_name: channel.name, // 新增返回名称
+            channel_name: channel.name || `通道 ${channel.id}`,
             channel_key: realKey, 
             username: claimR.data.username, 
             password: claimR.data.password, 
@@ -346,7 +350,7 @@ export default {
 
       return json({ ok: false, error: "not found" }, 404, origin);
     } catch (e) {
-      return json({ ok: false, error: "系统异常" }, 500, origin);
+      return json({ ok: false, error: "系统异常: " + e.message }, 500, origin);
     }
   }
 };
