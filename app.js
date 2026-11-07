@@ -9,14 +9,12 @@
   let snackTimer, busy = false, userFp = '', isVipMode = false;
   let currentChannelId = 0;
 
-  // 与后端一致的简单哈希
   function hashStr(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) { hash = ((hash << 5) - hash) + str.charCodeAt(i); hash |= 0; }
     return hash.toString(16);
   }
 
-  // 极简 URL 构建，防签名错乱
   function buildUrl(path, extraParams = {}) {
     const t = Date.now().toString();
     const sign = hashStr(t + SIGN_SECRET);
@@ -94,13 +92,13 @@
 
         $('usedCount').textContent = data.used;
         $('totalUsed').textContent = data.today_total_used;
-        $('totalUsers').textContent = data.today_user_count;
+        $('totalUsers').textContent = data.total_user_count;
 
         if (data.is_vip) {
           isVipMode = true;
-          $('userStatusText').textContent = `【无限额度】极速体验中`;
+          $('userStatusText').textContent = `Unlimited credit limit`;
         } else {
-          $('userStatusText').textContent = `剩余可用次数 ${data.remaining}`;
+          $('userStatusText').textContent = `剩余额度 ${data.remaining}`;
         }
 
         if (data.status === 'banned') {
@@ -116,7 +114,6 @@
           $('getBtn').disabled = false; $('btnText').textContent = '获取';
         }
       } else {
-        // 如果返回了错误，直接提示出来，防止卡死
         $('userStatusText').textContent = data.error || '状态异常';
         $('getBtn').disabled = false; $('btnText').textContent = '获取';
       }
@@ -145,7 +142,7 @@
         $('profQuota').textContent = data.is_vip ? '无限' : data.remaining;
         $('profStatus').textContent = data.status === 'banned' ? '封禁' : '正常';
         $('profStatus').style.color = data.status === 'banned' ? 'var(--md-error)' : '#386A20';
-        $('profRole').textContent = data.is_vip ? '无限额度' : '普通用户';
+        $('profRole').textContent = data.is_vip ? 'VIP' : '普通用户';
         $('profileModal').classList.add('show');
       }
     } catch(e) { toast('获取信息失败'); }
@@ -273,7 +270,7 @@
     } finally {
       busy = false;
       $('spinner').classList.remove('on');
-      if ($('btnText').textContent !== '已封禁' && $('btnText').textContent !== '额度已用完') {
+      if ($('userStatusText').textContent !== '您的设备已被封禁' && $('btnText').textContent !== '额度已用完') {
         $('getBtn').disabled = false;
         $('btnText').textContent = '获取';
       }
@@ -293,23 +290,33 @@
       return;
     }
     
+    // 使用 data 属性传递安全数据，防止引号或特殊字符导致 DOM 崩溃
     $('historyList').innerHTML = history.map((h, i) => `
       <div class="history-item">
-        <div class="history-time">${h.time}</div>
-        <div class="history-data-row"><span>账号:</span> ${h.username}</div>
-        <div class="history-data-row"><span>密码:</span> ${h.password}</div>
+        <div class="history-time">${h.time || ''}</div>
+        <div class="history-data-row"><span>账号:</span> ${h.username || ''}</div>
+        <div class="history-data-row"><span>密码:</span> ${h.password || ''}</div>
         <div class="cookie-block">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
             <span style="color:var(--md-on-surface-variant); font-size:12px;">Cookie</span>
-            <button class="text-button" onclick="copyText('${h.cookies.replace(/'/g, "\\'")}')">复制</button>
+            <button class="text-button btn-copy-hist" data-cookie="${encodeURIComponent(h.cookies || '')}">复制</button>
           </div>
           <div class="cookie-content">${h.cookies || '无'}</div>
         </div>
         <div class="history-actions">
-          <button class="hist-btn primary" onclick="convertHistory(${i})">转为曲奇</button>
+          <button class="hist-btn primary btn-convert-hist" data-idx="${i}">转为曲奇</button>
         </div>
       </div>
     `).join('');
+
+    // 绑定复制
+    document.querySelectorAll('.btn-copy-hist').forEach(btn => {
+      btn.onclick = () => copyText(decodeURIComponent(btn.dataset.cookie));
+    });
+    // 绑定转换
+    document.querySelectorAll('.btn-convert-hist').forEach(btn => {
+      btn.onclick = () => convertHistory(parseInt(btn.dataset.idx));
+    });
   }
 
   window.convertHistory = async (index) => {
@@ -337,7 +344,6 @@
 
   $('historySearch').addEventListener('input', (e) => renderHistory(e.target.value));
 
-  // === 设置面板逻辑 ===
   $('settingsBtn').addEventListener('click', () => $('settingsModal').classList.add('show'));
   $('closeSettingsBtn').addEventListener('click', () => $('settingsModal').classList.remove('show'));
 
