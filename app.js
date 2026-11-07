@@ -15,12 +15,6 @@
     return hash.toString(16);
   }
 
-  // 安全转义，防止特殊字符撑爆 DOM
-  function escapeHTML(str) {
-    if (!str) return '';
-    return String(str).replace(/[&<>'"]/g, tag => ({'&': '&amp;','<': '&lt;','>': '&gt;',"'": '&#39;','"': '&quot;'}[tag]));
-  }
-
   function buildUrl(path, extraParams = {}) {
     const t = Date.now().toString();
     const sign = hashStr(t + SIGN_SECRET);
@@ -85,6 +79,16 @@
     $('log').scrollTop = $('log').scrollHeight;
   }
 
+  function updateAdVisibility() {
+    const isVip = isVipMode;
+    const forceShow = localStorage.getItem('vip_show_ad') === 'true';
+    if (!isVip || forceShow) {
+      $('floatingAd').style.display = 'flex';
+    } else {
+      $('floatingAd').style.display = 'none';
+    }
+  }
+
   async function loadInfo() {
     try {
       const res = await fetch(buildUrl("/info"), { cache: 'no-store' });
@@ -106,6 +110,7 @@
         } else {
           $('userStatusText').textContent = `剩余额度 ${data.remaining}`;
         }
+        updateAdVisibility();
 
         if (data.status === 'banned') {
           $('getBtn').disabled = true; $('btnText').textContent = '已封禁';
@@ -298,7 +303,7 @@
       }
 
       currentChannelId = claimData.channel;
-      $('outChannel').textContent = `来源通道 ${claimData.channel}`;
+      $('outChannel').textContent = `来源通道 ${claimData.channel_name || claimData.channel}`;
       $('voteGroup').style.display = 'flex';
       $('voteGroup').style.pointerEvents = 'auto';
 
@@ -337,62 +342,114 @@
     } finally {
       busy = false;
       $('spinner').classList.remove('on');
-      if ($('userStatusText').textContent !== '您的设备已被封禁' && $('btnText').textContent !== '额度已用完') {
-        $('getBtn').disabled = false;
-        $('btnText').textContent = '获取';
+      
+      // 强制暴力恢复状态
+      if (isVipMode) {
+         $('getBtn').disabled = false; $('btnText').textContent = '获取';
+      } else {
+         const text = $('userStatusText').textContent;
+         if (text.includes('封禁')) {
+             $('getBtn').disabled = true; $('btnText').textContent = '已封禁';
+         } else if (text.includes('剩余额度 0')) {
+             $('getBtn').disabled = true; $('btnText').textContent = '额度已用完';
+         } else {
+             $('getBtn').disabled = false; $('btnText').textContent = '获取';
+         }
       }
     }
   }
 
-  // 修复：使用安全的 HTML 转义与事件绑定，避免特殊字符截断
+  // 采用最安全的 DOM 节点式构建
   function renderHistory(keyword = '') {
-    let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
+    let raw = localStorage.getItem('cookies_history') || '[]';
+    let history = [];
+    try {
+      history = JSON.parse(raw);
+      if (!Array.isArray(history)) history = [];
+    } catch(e) { history = []; }
+
     if (keyword) {
       keyword = keyword.toLowerCase();
       history = history.filter(h => 
-        (h.username && h.username.toLowerCase().includes(keyword)) || (h.cookies && h.cookies.toLowerCase().includes(keyword))
+        (h.username && String(h.username).toLowerCase().includes(keyword)) || 
+        (h.cookies && String(h.cookies).toLowerCase().includes(keyword))
       );
     }
+    
     const list = $('historyList');
+    list.innerHTML = '';
     
     if (history.length === 0) {
       list.innerHTML = '<div style="font-size:12px;color:var(--md-on-surface-variant);text-align:center;padding:12px;">暂无记录</div>';
       return;
     }
     
-    let html = '';
     history.forEach((h, i) => {
-      html += `
-        <div class="history-item">
-          <div class="history-time">${escapeHTML(h.time)}</div>
-          <div class="history-data-row"><span>账号:</span> ${escapeHTML(h.username)}</div>
-          <div class="history-data-row"><span>密码:</span> ${escapeHTML(h.password)}</div>
-          <div class="cookie-block">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-              <span style="color:var(--md-on-surface-variant); font-size:12px;">Cookie</span>
-              <button class="text-button btn-copy-hist" data-idx="${i}">复制</button>
-            </div>
-            <div class="cookie-content">${escapeHTML(h.cookies) || '无'}</div>
-          </div>
-          <div class="history-actions">
-            <button class="hist-btn primary btn-convert-hist" data-idx="${i}">转为曲奇</button>
-          </div>
-        </div>
-      `;
-    });
-    list.innerHTML = html;
+      if (!h) return;
+      
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      
+      const timeDiv = document.createElement('div');
+      timeDiv.className = 'history-time';
+      timeDiv.textContent = h.time || '';
+      
+      const userRow = document.createElement('div');
+      userRow.className = 'history-data-row';
+      const userSpan = document.createElement('span');
+      userSpan.textContent = '账号: ';
+      userRow.appendChild(userSpan);
+      userRow.appendChild(document.createTextNode(h.username || ''));
 
-    // 重新绑定事件
-    document.querySelectorAll('.btn-copy-hist').forEach(btn => {
-      btn.onclick = () => copyText(history[btn.dataset.idx].cookies);
-    });
-    document.querySelectorAll('.btn-convert-hist').forEach(btn => {
-      btn.onclick = () => convertHistory(parseInt(btn.dataset.idx));
+      const passRow = document.createElement('div');
+      passRow.className = 'history-data-row';
+      const passSpan = document.createElement('span');
+      passSpan.textContent = '密码: ';
+      passRow.appendChild(passSpan);
+      passRow.appendChild(document.createTextNode(h.password || ''));
+
+      const cookieBox = document.createElement('div');
+      cookieBox.className = 'cookie-block';
+      
+      const cookieHeader = document.createElement('div');
+      cookieHeader.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;";
+      cookieHeader.innerHTML = `<span style="color:var(--md-on-surface-variant); font-size:12px;">Cookie</span>`;
+      
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'text-button';
+      copyBtn.textContent = '复制';
+      copyBtn.onclick = () => copyText(h.cookies);
+      cookieHeader.appendChild(copyBtn);
+
+      const cookieContent = document.createElement('div');
+      cookieContent.className = 'cookie-content';
+      cookieContent.textContent = h.cookies || '无';
+      
+      cookieBox.appendChild(cookieHeader);
+      cookieBox.appendChild(cookieContent);
+
+      const actions = document.createElement('div');
+      actions.className = 'history-actions';
+      
+      const convertBtn = document.createElement('button');
+      convertBtn.className = 'hist-btn primary';
+      convertBtn.textContent = '转为曲奇';
+      convertBtn.onclick = () => convertHistory(i);
+      actions.appendChild(convertBtn);
+
+      item.appendChild(timeDiv);
+      item.appendChild(userRow);
+      item.appendChild(passRow);
+      item.appendChild(cookieBox);
+      item.appendChild(actions);
+      
+      list.appendChild(item);
     });
   }
 
   window.convertHistory = async (index) => {
-    let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
+    let history = [];
+    try { history = JSON.parse(localStorage.getItem('cookies_history') || '[]'); } catch(e) { return; }
     const h = history[index];
     if(!h) return;
     toast('正在转换...');
@@ -446,6 +503,15 @@
   }
   $('ignoreVotesSetting').addEventListener('change', (e) => {
     localStorage.setItem('ignore_votes', e.target.checked);
+  });
+
+  // 广告显示开关
+  if (localStorage.getItem('vip_show_ad') === 'true') {
+    $('showAdToggle').checked = true;
+  }
+  $('showAdToggle').addEventListener('change', (e) => {
+    localStorage.setItem('vip_show_ad', e.target.checked);
+    updateAdVisibility();
   });
 
   (async function init() {
