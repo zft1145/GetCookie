@@ -29,12 +29,10 @@ function getTodayStr() {
 const obfuscate = (str) => btoa(str.split('').reverse().join(''));
 const deobfuscate = (str) => atob(str).split('').reverse().join('');
 
-// 简化签名算法，彻底杜绝因为 URL 编码、空格导致的验证失败误杀
 function verifySignature(url, sign) {
   if (!sign) return false;
   const t = parseInt(url.searchParams.get("t") || "0", 10);
   if (Date.now() - t > 300000) return false;
-  // 这里用最稳定的简单校验，前端生成 sign = hash(t + secret)
   const raw = t.toString() + SIGN_SECRET;
   let hash = 0;
   for (let i = 0; i < raw.length; i++) {
@@ -186,6 +184,14 @@ export default {
             }
             return json({ ok: true }, 200, origin);
           }
+          if (body.action === "set_vip") {
+            let users = JSON.parse(await kv.get("users") || "{}");
+            if (users[body.fingerprint]) {
+              users[body.fingerprint].vip = body.vip;
+              await kv.put("users", JSON.stringify(users));
+            }
+            return json({ ok: true }, 200, origin);
+          }
         }
         return json({ ok: false, error: "Invalid Request" }, 400, origin);
       }
@@ -209,11 +215,11 @@ export default {
       const limit = calcDynamicLimit(user.vip, user.count);
 
       let todayTotalUsed = 0;
-      let todayUserCount = 0;
+      let totalUserCount = 0;
       for (const k in users) {
+        if (users[k].username) totalUserCount++;
         if (users[k].date === getTodayStr()) {
           todayTotalUsed += users[k].count || 0;
-          if (users[k].username) todayUserCount++;
         }
       }
 
@@ -229,7 +235,7 @@ export default {
           is_vip: user.vip || false,
           turnstile_site_key: config.turnstile_site_key || "",
           today_total_used: todayTotalUsed,
-          today_user_count: todayUserCount
+          total_user_count: totalUserCount
         }, 200, origin);
       }
 
