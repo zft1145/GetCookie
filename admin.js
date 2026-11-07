@@ -38,15 +38,16 @@
         if(id !== 'navBtns') $(id).style.display = 'block';
       });
 
+      // 修复通道列表 UI 挤压
       $('channelList').innerHTML = data.channels.map(c => `
-        <div class="admin-item" style="flex-wrap: nowrap; gap: 8px;">
-          <div style="flex: 1; min-width: 0; word-break: break-all;">
+        <div class="admin-item" style="flex-direction: column; align-items: stretch; gap: 12px;">
+          <div>
             <strong>${c.name}</strong> <span style="font-size:13px;color:${c.votes>=0?'var(--md-success)':'var(--md-error)'}">(票数: ${c.votes||0})</span>
-            <br><span style="font-size:12px;color:var(--md-on-surface-variant)">${c.key}</span>
+            <br><span style="font-size:12px;color:var(--md-on-surface-variant);word-break:break-all;">${c.key}</span>
           </div>
-          <div style="display:flex; gap:4px; flex-shrink: 0;">
-            <button class="copy-btn" onclick="deleteChannel(${c.id})" style="color:var(--md-error)">删除</button>
-            <button class="copy-btn" onclick="toggleChannel(${c.id}, ${!c.active})" style="color:${c.active?'var(--md-success)':'var(--md-on-surface-variant)'}; white-space: nowrap;">
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button class="copy-btn" onclick="deleteChannel(${c.id})" style="color:var(--md-error); border: 1px solid var(--md-outline-variant);">删除</button>
+            <button class="copy-btn" onclick="toggleChannel(${c.id}, ${!c.active})" style="color:${c.active?'var(--md-success)':'var(--md-on-surface-variant)'}; border: 1px solid var(--md-outline-variant);">
               ${c.active ? '开启中' : '已关闭'}
             </button>
           </div>
@@ -63,21 +64,23 @@
       if (userKeys.length === 0) {
         $('userList').innerHTML = `<div style="padding:16px;font-size:14px;color:var(--md-on-surface-variant)">暂无记录</div>`;
       } else {
+        // 修复用户列表 UI 挤压（将按钮放到下方）
         $('userList').innerHTML = userKeys.map(fp => {
           const u = data.users[fp];
           const vipBadge = u.vip ? `<span style="color:#FFF;background:var(--md-primary);font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;">VIP</span>` : '';
           const limit = calcDynamicLimit(u.vip, u.count);
           
           return `
-          <div class="admin-item" style="flex-wrap: nowrap; gap: 8px;">
-            <div style="flex: 1; min-width: 0; word-break: break-all;">
-              <strong>${u.username || '未绑定'} (${fp}) ${vipBadge}</strong><br>
-              <span style="font-size:13px;color:var(--md-on-surface-variant)">今日已用: ${u.count} / 上限: ${limit}</span>
+          <div class="admin-item" style="flex-direction: column; align-items: stretch; gap: 12px;">
+            <div>
+              <div><strong>${u.username || '未绑定'}</strong> ${vipBadge}</div>
+              <div style="font-size: 12px; color: var(--md-on-surface-variant); word-break: break-all; margin-top: 4px;">指纹: ${fp}</div>
+              <div style="font-size: 13px; color: var(--md-on-surface-variant); margin-top: 4px;">今日已用: ${u.count} / 上限: ${limit}</div>
             </div>
-            <div style="display:flex; gap:4px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end;">
-              <button class="copy-btn" onclick="setVip('${fp}', ${!u.vip})" style="color:${u.vip?'var(--md-on-surface-variant)':'var(--md-primary)'}">${u.vip ? '取消VIP' : '设为VIP'}</button>
-              <button class="copy-btn" onclick="resetUserQuota('${fp}')" style="color:var(--md-primary)">重置</button>
-              <button class="copy-btn" onclick="toggleUser('${fp}', '${u.status === 'active' ? 'banned' : 'active'}')" style="color:${u.status === 'active' ? 'var(--md-error)' : 'var(--md-success)'}">
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+              <button class="copy-btn" onclick="setVip('${fp}', ${!u.vip})" style="color:${u.vip?'var(--md-on-surface-variant)':'var(--md-primary)'}; border: 1px solid var(--md-outline-variant);">${u.vip ? '取消VIP' : '设为VIP'}</button>
+              <button class="copy-btn" onclick="resetUserQuota('${fp}')" style="color:var(--md-primary); border: 1px solid var(--md-outline-variant);">重置</button>
+              <button class="copy-btn" onclick="toggleUser('${fp}', '${u.status === 'active' ? 'banned' : 'active'}')" style="color:${u.status === 'active' ? 'var(--md-error)' : 'var(--md-success)'}; border: 1px solid var(--md-outline-variant);">
                 ${u.status === 'active' ? '封禁' : '解封'}
               </button>
             </div>
