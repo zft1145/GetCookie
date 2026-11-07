@@ -276,7 +276,6 @@ export default {
       if (user.status === "banned") return json({ ok: false, error: "已被封禁" }, 403, origin);
       if (user.count >= limit) return json({ ok: false, error: "额度已用完" }, 429, origin);
 
-      // 风控检测
       if (path === "/claim" || path === "/convert") {
         const now = Math.floor(Date.now() / 1000);
         if (!user.last_time || now - user.last_time > 60) user.suspicion = 0;
@@ -311,7 +310,15 @@ export default {
         users[fingerprint] = user;
         await kv.put("users", JSON.stringify(users));
 
-        return json({ ok: true, channel: channel.id, channel_key: realKey, username: claimR.data.username, password: claimR.data.password, remaining: limit - user.count }, 200, origin);
+        return json({ 
+            ok: true, 
+            channel: channel.id, 
+            channel_name: channel.name, // 新增返回名称
+            channel_key: realKey, 
+            username: claimR.data.username, 
+            password: claimR.data.password, 
+            remaining: limit - user.count 
+        }, 200, origin);
       }
 
       if (path === "/convert") {
