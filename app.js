@@ -343,7 +343,6 @@
       busy = false;
       $('spinner').classList.remove('on');
       
-      // 强制暴力恢复状态
       if (isVipMode) {
          $('getBtn').disabled = false; $('btnText').textContent = '获取';
       } else {
@@ -359,54 +358,60 @@
     }
   }
 
-  // 采用最安全的 DOM 节点式构建
+  // 终极加固版历史渲染，绝不崩溃
   function renderHistory(keyword = '') {
-    let raw = localStorage.getItem('cookies_history') || '[]';
+    const list = $('historyList');
+    list.innerHTML = '';
+
+    let raw = localStorage.getItem('cookies_history');
+    if (!raw) {
+      list.innerHTML = '<div style="font-size:12px;color:var(--md-on-surface-variant);text-align:center;padding:12px;">暂无记录</div>';
+      return;
+    }
+
     let history = [];
     try {
-      history = JSON.parse(raw);
-      if (!Array.isArray(history)) history = [];
-    } catch(e) { history = []; }
+      let parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        history = parsed;
+      }
+    } catch(e) {
+      list.innerHTML = '<div style="font-size:12px;color:var(--md-error);text-align:center;padding:12px;">记录已损坏，无法读取</div>';
+      return;
+    }
 
     if (keyword) {
       keyword = keyword.toLowerCase();
       history = history.filter(h => 
-        (h.username && String(h.username).toLowerCase().includes(keyword)) || 
-        (h.cookies && String(h.cookies).toLowerCase().includes(keyword))
+        (h && h.username && String(h.username).toLowerCase().includes(keyword)) || 
+        (h && h.cookies && String(h.cookies).toLowerCase().includes(keyword))
       );
     }
-    
-    const list = $('historyList');
-    list.innerHTML = '';
-    
+
     if (history.length === 0) {
-      list.innerHTML = '<div style="font-size:12px;color:var(--md-on-surface-variant);text-align:center;padding:12px;">暂无记录</div>';
+      list.innerHTML = '<div style="font-size:12px;color:var(--md-on-surface-variant);text-align:center;padding:12px;">无匹配记录</div>';
       return;
     }
-    
+
     history.forEach((h, i) => {
-      if (!h) return;
+      if (!h || typeof h !== 'object') return;
       
       const item = document.createElement('div');
       item.className = 'history-item';
       
       const timeDiv = document.createElement('div');
       timeDiv.className = 'history-time';
-      timeDiv.textContent = h.time || '';
+      timeDiv.textContent = h.time || '未知时间';
       
       const userRow = document.createElement('div');
       userRow.className = 'history-data-row';
-      const userSpan = document.createElement('span');
-      userSpan.textContent = '账号: ';
-      userRow.appendChild(userSpan);
-      userRow.appendChild(document.createTextNode(h.username || ''));
+      userRow.innerHTML = `<span>账号:</span> `;
+      userRow.appendChild(document.createTextNode(h.username || '未记录'));
 
       const passRow = document.createElement('div');
       passRow.className = 'history-data-row';
-      const passSpan = document.createElement('span');
-      passSpan.textContent = '密码: ';
-      passRow.appendChild(passSpan);
-      passRow.appendChild(document.createTextNode(h.password || ''));
+      passRow.innerHTML = `<span>密码:</span> `;
+      passRow.appendChild(document.createTextNode(h.password || '未记录'));
 
       const cookieBox = document.createElement('div');
       cookieBox.className = 'cookie-block';
@@ -418,12 +423,12 @@
       const copyBtn = document.createElement('button');
       copyBtn.className = 'text-button';
       copyBtn.textContent = '复制';
-      copyBtn.onclick = () => copyText(h.cookies);
+      copyBtn.onclick = () => copyText(h.cookies || '');
       cookieHeader.appendChild(copyBtn);
 
       const cookieContent = document.createElement('div');
       cookieContent.className = 'cookie-content';
-      cookieContent.textContent = h.cookies || '无';
+      cookieContent.textContent = h.cookies || '暂无数据';
       
       cookieBox.appendChild(cookieHeader);
       cookieBox.appendChild(cookieContent);
@@ -451,7 +456,7 @@
     let history = [];
     try { history = JSON.parse(localStorage.getItem('cookies_history') || '[]'); } catch(e) { return; }
     const h = history[index];
-    if(!h) return;
+    if(!h || !h.username || !h.password) return toast('该记录缺少账号密码，无法转换');
     toast('正在转换...');
     
     try {
@@ -505,7 +510,6 @@
     localStorage.setItem('ignore_votes', e.target.checked);
   });
 
-  // 广告显示开关
   if (localStorage.getItem('vip_show_ad') === 'true') {
     $('showAdToggle').checked = true;
   }
