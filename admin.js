@@ -44,9 +44,12 @@
             <strong>${c.name}</strong> <span style="font-size:13px;color:${c.votes>=0?'var(--md-success)':'var(--md-error)'}">(票数: ${c.votes||0})</span>
             <br><span style="font-size:12px;color:var(--md-on-surface-variant)">${c.key}</span>
           </div>
-          <button class="copy-btn" onclick="toggleChannel(${c.id}, ${!c.active})" style="color:${c.active?'var(--md-success)':'var(--md-error)'}; flex-shrink: 0; white-space: nowrap;">
-            ${c.active ? '开启中' : '已关闭'}
-          </button>
+          <div style="display:flex; gap:4px; flex-shrink: 0;">
+            <button class="copy-btn" onclick="deleteChannel(${c.id})" style="color:var(--md-error)">删除</button>
+            <button class="copy-btn" onclick="toggleChannel(${c.id}, ${!c.active})" style="color:${c.active?'var(--md-success)':'var(--md-on-surface-variant)'}; white-space: nowrap;">
+              ${c.active ? '开启中' : '已关闭'}
+            </button>
+          </div>
         </div>
       `).join('');
 
@@ -91,6 +94,15 @@
       body: JSON.stringify({ action: 'toggle_channel', id, active })
     });
     loadData();
+  };
+
+  window.deleteChannel = async (id) => {
+    if(!confirm('确定要永久删除该通道吗？')) return;
+    await fetch(`https://cookiew.xtz1.top/admin/api?key=${ADMIN_KEY}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_channel', id })
+    });
+    toast('通道已删除'); loadData();
   };
 
   window.toggleUser = async (fingerprint, status) => {
