@@ -39,12 +39,12 @@
       });
 
       $('channelList').innerHTML = data.channels.map(c => `
-        <div class="admin-item">
-          <div>
+        <div class="admin-item" style="flex-wrap: nowrap; gap: 8px;">
+          <div style="flex: 1; min-width: 0; word-break: break-all;">
             <strong>${c.name}</strong> <span style="font-size:13px;color:${c.votes>=0?'var(--md-success)':'var(--md-error)'}">(票数: ${c.votes||0})</span>
             <br><span style="font-size:12px;color:var(--md-on-surface-variant)">${c.key}</span>
           </div>
-          <button class="copy-btn" onclick="toggleChannel(${c.id}, ${!c.active})" style="color:${c.active?'var(--md-success)':'var(--md-error)'}">
+          <button class="copy-btn" onclick="toggleChannel(${c.id}, ${!c.active})" style="color:${c.active?'var(--md-success)':'var(--md-error)'}; flex-shrink: 0; white-space: nowrap;">
             ${c.active ? '开启中' : '已关闭'}
           </button>
         </div>
@@ -62,15 +62,17 @@
       } else {
         $('userList').innerHTML = userKeys.map(fp => {
           const u = data.users[fp];
-          const vipBadge = u.vip ? `<span style="color:#FFF;background:var(--md-primary);font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;">无限</span>` : '';
+          const vipBadge = u.vip ? `<span style="color:#FFF;background:var(--md-primary);font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px;">VIP</span>` : '';
           const limit = calcDynamicLimit(u.vip, u.count);
+          
           return `
-          <div class="admin-item">
-            <div>
+          <div class="admin-item" style="flex-wrap: nowrap; gap: 8px;">
+            <div style="flex: 1; min-width: 0; word-break: break-all;">
               <strong>${u.username || '未绑定'} (${fp}) ${vipBadge}</strong><br>
-              <span style="font-size:13px;color:var(--md-on-surface-variant)">今日已用: ${u.count} / 动态上限: ${limit}</span>
+              <span style="font-size:13px;color:var(--md-on-surface-variant)">今日已用: ${u.count} / 上限: ${limit}</span>
             </div>
-            <div style="display:flex; gap:4px;">
+            <div style="display:flex; gap:4px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end;">
+              <button class="copy-btn" onclick="setVip('${fp}', ${!u.vip})" style="color:${u.vip?'var(--md-on-surface-variant)':'var(--md-primary)'}">${u.vip ? '取消VIP' : '设为VIP'}</button>
               <button class="copy-btn" onclick="resetUserQuota('${fp}')" style="color:var(--md-primary)">重置</button>
               <button class="copy-btn" onclick="toggleUser('${fp}', '${u.status === 'active' ? 'banned' : 'active'}')" style="color:${u.status === 'active' ? 'var(--md-error)' : 'var(--md-success)'}">
                 ${u.status === 'active' ? '封禁' : '解封'}
@@ -106,6 +108,15 @@
       body: JSON.stringify({ action: 'reset_user_quota', fingerprint })
     });
     toast('额度已重置'); loadData();
+  };
+
+  window.setVip = async (fingerprint, vip) => {
+    await fetch(`https://cookiew.xtz1.top/admin/api?key=${ADMIN_KEY}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'set_vip', fingerprint, vip })
+    });
+    toast(vip ? '已设为VIP' : '已取消VIP'); 
+    loadData();
   };
 
   $('authBtn').addEventListener('click', () => {
