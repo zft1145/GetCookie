@@ -15,6 +15,12 @@
     return hash.toString(16);
   }
 
+  // 安全转义，防止特殊字符撑爆 DOM
+  function escapeHTML(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>'"]/g, tag => ({'&': '&amp;','<': '&lt;','>': '&gt;',"'": '&#39;','"': '&quot;'}[tag]));
+  }
+
   function buildUrl(path, extraParams = {}) {
     const t = Date.now().toString();
     const sign = hashStr(t + SIGN_SECRET);
@@ -220,7 +226,6 @@
 
         const modal = $('bindModal');
         const container = $('turnstile-container');
-        // 借用 bindModal 的界面但换文案
         modal.querySelector('.modal-title').textContent = "安全验证";
         modal.querySelector('p').textContent = "检测到操作频繁，请完成验证。";
         modal.querySelector('.input-group').style.display = 'none';
@@ -339,6 +344,7 @@
     }
   }
 
+  // 修复：使用安全的 HTML 转义与事件绑定，避免特殊字符截断
   function renderHistory(keyword = '') {
     let history = JSON.parse(localStorage.getItem('cookies_history') || '[]');
     if (keyword) {
@@ -348,63 +354,40 @@
       );
     }
     const list = $('historyList');
-    list.innerHTML = '';
     
     if (history.length === 0) {
       list.innerHTML = '<div style="font-size:12px;color:var(--md-on-surface-variant);text-align:center;padding:12px;">暂无记录</div>';
       return;
     }
     
-    // 使用安全的 DOM 构建方式，防止特殊字符破坏 HTML
+    let html = '';
     history.forEach((h, i) => {
-      const item = document.createElement('div');
-      item.className = 'history-item';
-      
-      const timeDiv = document.createElement('div');
-      timeDiv.className = 'history-time';
-      timeDiv.textContent = h.time || '';
-      
-      const userRow = document.createElement('div');
-      userRow.className = 'history-data-row';
-      userRow.innerHTML = `<span>账号:</span> `;
-      userRow.appendChild(document.createTextNode(h.username || ''));
-
-      const passRow = document.createElement('div');
-      passRow.className = 'history-data-row';
-      passRow.innerHTML = `<span>密码:</span> `;
-      passRow.appendChild(document.createTextNode(h.password || ''));
-
-      const cookieBox = document.createElement('div');
-      cookieBox.className = 'cookie-block';
-      cookieBox.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-          <span style="color:var(--md-on-surface-variant); font-size:12px;">Cookie</span>
-          <button class="text-button btn-copy-hist">复制</button>
+      html += `
+        <div class="history-item">
+          <div class="history-time">${escapeHTML(h.time)}</div>
+          <div class="history-data-row"><span>账号:</span> ${escapeHTML(h.username)}</div>
+          <div class="history-data-row"><span>密码:</span> ${escapeHTML(h.password)}</div>
+          <div class="cookie-block">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <span style="color:var(--md-on-surface-variant); font-size:12px;">Cookie</span>
+              <button class="text-button btn-copy-hist" data-idx="${i}">复制</button>
+            </div>
+            <div class="cookie-content">${escapeHTML(h.cookies) || '无'}</div>
+          </div>
+          <div class="history-actions">
+            <button class="hist-btn primary btn-convert-hist" data-idx="${i}">转为曲奇</button>
+          </div>
         </div>
       `;
-      const cookieContent = document.createElement('div');
-      cookieContent.className = 'cookie-content';
-      cookieContent.textContent = h.cookies || '无';
-      cookieBox.appendChild(cookieContent);
+    });
+    list.innerHTML = html;
 
-      const actions = document.createElement('div');
-      actions.className = 'history-actions';
-      const convertBtn = document.createElement('button');
-      convertBtn.className = 'hist-btn primary btn-convert-hist';
-      convertBtn.textContent = '转为曲奇';
-      actions.appendChild(convertBtn);
-
-      item.appendChild(timeDiv);
-      item.appendChild(userRow);
-      item.appendChild(passRow);
-      item.appendChild(cookieBox);
-      item.appendChild(actions);
-      
-      // 绑定事件
-      cookieBox.querySelector('.btn-copy-hist').onclick = () => copyText(h.cookies);
-      convertBtn.onclick = () => convertHistory(i);
-
-      list.appendChild(item);
+    // 重新绑定事件
+    document.querySelectorAll('.btn-copy-hist').forEach(btn => {
+      btn.onclick = () => copyText(history[btn.dataset.idx].cookies);
+    });
+    document.querySelectorAll('.btn-convert-hist').forEach(btn => {
+      btn.onclick = () => convertHistory(parseInt(btn.dataset.idx));
     });
   }
 
