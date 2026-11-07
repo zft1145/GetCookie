@@ -72,7 +72,7 @@ html[data-theme="dark"][data-color="orange"] {
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; background-color: var(--md-surface); color: var(--md-on-surface); -webkit-font-smoothing: antialiased; padding-bottom: calc(80px + env(safe-area-inset-bottom)); transition: background-color 0.3s, color 0.3s; }
+body { margin: 0; font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif; background-color: var(--md-surface); color: var(--md-on-surface); -webkit-font-smoothing: antialiased; padding-bottom: calc(100px + env(safe-area-inset-bottom)); transition: background-color 0.3s, color 0.3s; }
 
 .app-bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; height: 64px; padding: 0 16px; background-color: var(--md-surface); }
 .app-bar h1 { margin: 0; font-size: 26px; font-weight: 800; flex: 1; letter-spacing: -1px; color: var(--md-primary); }
@@ -151,9 +151,23 @@ html[data-theme="dark"] .log-ok { color: #B6F09C; }
 .hist-btn:active { transform: scale(0.92); }
 .hist-btn.primary { background: var(--md-primary); color: var(--md-on-primary); }
 
-/* 修复历史记录中的曲奇框样式，解决直角和遮挡 */
 .history-item .cookie-block { background: var(--md-surface-container-high); border-radius: 16px; padding: 12px; margin-top: 4px; overflow: hidden; }
 .history-item .cookie-content { max-height: 80px; padding: 12px; border-radius: 12px; font-size: 12px; }
+
+/* 悬浮窗：按需定制 */
+.floating-ad {
+  position: fixed; right: 0; bottom: 24px; z-index: 100;
+  background: linear-gradient(135deg, #6750A4, #8E7CC3);
+  color: #FFF; text-decoration: none; padding: 12px 16px;
+  border-radius: 16px 0 0 0; /* 左上角大圆角 */
+  box-shadow: -4px 4px 12px rgba(0,0,0,0.2);
+  display: flex; flex-direction: column; align-items: flex-start;
+  transition: transform 0.2s;
+  display: none; /* 默认隐藏，由 JS 控制 */
+}
+.floating-ad strong { font-size: 13px; font-weight: 600; letter-spacing: 0.5px; }
+.floating-ad span { font-size: 12px; margin-top: 4px; color: #EADDFF; }
+.floating-ad a { color: #FFF; text-decoration: underline; font-weight: 500; }
 
 .watermark { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 5; color: var(--md-primary); padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 600; text-decoration: none; opacity: 0.2; pointer-events: none; }
 
@@ -280,6 +294,11 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
   </section>
 </main>
 
+<a href="https://qm.qq.com/q/Yu4WU9yF0m" target="_blank" class="floating-ad" id="floatingAd">
+  <strong>By VHaxAgentXTZ</strong>
+  <span>无限额度获取→3853597686(免费)</span>
+</a>
+
 <div class="modal-overlay" id="profileModal">
   <div class="modal-box">
     <h2 class="modal-title">个人中心</h2>
@@ -330,6 +349,13 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
       <span>忽略推荐 (纯随机)</span>
       <label class="switch">
         <input type="checkbox" id="ignoreVotesSetting">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="setting-row">
+      <span>显示赞助商广告 (VIP专属)</span>
+      <label class="switch">
+        <input type="checkbox" id="showAdToggle">
         <span class="slider"></span>
       </label>
     </div>
