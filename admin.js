@@ -10,7 +10,6 @@
     snackTimer = setTimeout(() => $('snackbar').classList.remove('show'), 2200);
   }
 
-  // 动态计算额度上限
   function calcDynamicLimit(isVip, count) {
     if (!isVip) return 20;
     if (count >= 30) return 100;
