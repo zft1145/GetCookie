@@ -154,6 +154,12 @@ export default {
             await kv.put("channels", JSON.stringify(channels));
             return json({ ok: true }, 200, origin);
           }
+          if (body.action === "delete_channel") {
+            let channels = JSON.parse(await kv.get("channels") || "[]");
+            channels = channels.filter(c => c.id !== body.id);
+            await kv.put("channels", JSON.stringify(channels));
+            return json({ ok: true }, 200, origin);
+          }
           if (body.action === "add_channel") {
             let channels = JSON.parse(await kv.get("channels") || "[]");
             const newId = channels.length > 0 ? Math.max(...channels.map(c => c.id)) + 1 : 1;
@@ -269,6 +275,23 @@ export default {
 
       if (user.status === "banned") return json({ ok: false, error: "已被封禁" }, 403, origin);
       if (user.count >= limit) return json({ ok: false, error: "额度已用完" }, 429, origin);
+
+      // 风控检测
+      if (path === "/claim" || path === "/convert") {
+        const now = Math.floor(Date.now() / 1000);
+        if (!user.last_time || now - user.last_time > 60) user.suspicion = 0;
+        user.suspicion = (user.suspicion || 0) + 0.5;
+        user.last_time = now;
+        
+        const riskLimit = user.vip ? 5 : 3;
+        if (user.suspicion >= riskLimit) {
+          const token = url.searchParams.get("turnstile_token");
+          if (!token) return json({ ok: false, need_turnstile: true, error: "触发风控，请完成验证" }, 403, origin);
+          const isValid = await verifyTurnstile(token, config.turnstile_secret);
+          if (!isValid) return json({ ok: false, need_turnstile: true, error: "验证失败，请重试" }, 403, origin);
+          user.suspicion = 0; 
+        }
+      }
 
       if (path === "/claim") {
         let channels = JSON.parse(channelsStr || "[]");
