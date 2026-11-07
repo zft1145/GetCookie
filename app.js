@@ -209,7 +209,51 @@
     setTimeout(() => { $('progressWrap').classList.remove('show'); }, 300);
   }
 
-  async function doFetch() {
+  let modalWidgetId = null;
+  async function showRiskTurnstile() {
+    return new Promise(async (resolve) => {
+      try {
+        const res = await fetch(buildUrl("/info"));
+        const data = await res.json();
+        const siteKey = data.turnstile_site_key;
+        if (!siteKey) { toast("管理员未配置验证"); resolve(null); return; }
+
+        const modal = $('bindModal');
+        const container = $('turnstile-container');
+        // 借用 bindModal 的界面但换文案
+        modal.querySelector('.modal-title').textContent = "安全验证";
+        modal.querySelector('p').textContent = "检测到操作频繁，请完成验证。";
+        modal.querySelector('.input-group').style.display = 'none';
+        const btn = $('bindBtn');
+        btn.textContent = '取消';
+        btn.disabled = false;
+        
+        container.innerHTML = '';
+        modal.classList.add('show');
+
+        modalWidgetId = turnstile.render(container, {
+          sitekey: siteKey,
+          theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light',
+          callback: function(token) {
+            modal.classList.remove('show');
+            resolve(token);
+          },
+          'error-callback': function() {
+            modal.classList.remove('show');
+            resolve(null);
+          }
+        });
+
+        btn.onclick = () => {
+          turnstile.remove(modalWidgetId);
+          modal.classList.remove('show');
+          resolve(null);
+        };
+      } catch(e) { resolve(null); }
+    });
+  }
+
+  async function doFetch(token = '') {
     if (busy) return;
     busy = true;
     $('getBtn').disabled = true;
@@ -225,10 +269,28 @@
     startProgress();
 
     try {
-      const claimRes = await fetch(buildUrl("/claim"), { cache: 'no-store' });
+      const claimRes = await fetch(buildUrl("/claim", { turnstile_token: token }), { cache: 'no-store' });
       const claimData = await claimRes.json();
 
-      if (!claimData.ok) throw new Error(claimData.error || '获取失败');
+      if (!claimData.ok) {
+        if (claimData.need_turnstile) {
+          stopProgress();
+          log('触发风控限制，需要验证', 'err');
+          $('spinner').classList.remove('on');
+          $('btnText').textContent = '请完成验证';
+          
+          const newToken = await showRiskTurnstile();
+          busy = false;
+          if (newToken) { 
+            $('btnText').textContent = '获取中…';
+            $('getBtn').disabled = true;
+            doFetch(newToken); 
+          }
+          else { $('getBtn').disabled = false; $('btnText').textContent = '获取'; }
+          return;
+        }
+        throw new Error(claimData.error || '获取失败');
+      }
 
       currentChannelId = claimData.channel;
       $('outChannel').textContent = `来源通道 ${claimData.channel}`;
@@ -285,37 +347,64 @@
         (h.username && h.username.toLowerCase().includes(keyword)) || (h.cookies && h.cookies.toLowerCase().includes(keyword))
       );
     }
+    const list = $('historyList');
+    list.innerHTML = '';
+    
     if (history.length === 0) {
-      $('historyList').innerHTML = '<div style="font-size:12px;color:var(--md-on-surface-variant);text-align:center;padding:12px;">暂无记录</div>';
+      list.innerHTML = '<div style="font-size:12px;color:var(--md-on-surface-variant);text-align:center;padding:12px;">暂无记录</div>';
       return;
     }
     
-    // 使用 data 属性传递安全数据，防止引号或特殊字符导致 DOM 崩溃
-    $('historyList').innerHTML = history.map((h, i) => `
-      <div class="history-item">
-        <div class="history-time">${h.time || ''}</div>
-        <div class="history-data-row"><span>账号:</span> ${h.username || ''}</div>
-        <div class="history-data-row"><span>密码:</span> ${h.password || ''}</div>
-        <div class="cookie-block">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-            <span style="color:var(--md-on-surface-variant); font-size:12px;">Cookie</span>
-            <button class="text-button btn-copy-hist" data-cookie="${encodeURIComponent(h.cookies || '')}">复制</button>
-          </div>
-          <div class="cookie-content">${h.cookies || '无'}</div>
-        </div>
-        <div class="history-actions">
-          <button class="hist-btn primary btn-convert-hist" data-idx="${i}">转为曲奇</button>
-        </div>
-      </div>
-    `).join('');
+    // 使用安全的 DOM 构建方式，防止特殊字符破坏 HTML
+    history.forEach((h, i) => {
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      
+      const timeDiv = document.createElement('div');
+      timeDiv.className = 'history-time';
+      timeDiv.textContent = h.time || '';
+      
+      const userRow = document.createElement('div');
+      userRow.className = 'history-data-row';
+      userRow.innerHTML = `<span>账号:</span> `;
+      userRow.appendChild(document.createTextNode(h.username || ''));
 
-    // 绑定复制
-    document.querySelectorAll('.btn-copy-hist').forEach(btn => {
-      btn.onclick = () => copyText(decodeURIComponent(btn.dataset.cookie));
-    });
-    // 绑定转换
-    document.querySelectorAll('.btn-convert-hist').forEach(btn => {
-      btn.onclick = () => convertHistory(parseInt(btn.dataset.idx));
+      const passRow = document.createElement('div');
+      passRow.className = 'history-data-row';
+      passRow.innerHTML = `<span>密码:</span> `;
+      passRow.appendChild(document.createTextNode(h.password || ''));
+
+      const cookieBox = document.createElement('div');
+      cookieBox.className = 'cookie-block';
+      cookieBox.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <span style="color:var(--md-on-surface-variant); font-size:12px;">Cookie</span>
+          <button class="text-button btn-copy-hist">复制</button>
+        </div>
+      `;
+      const cookieContent = document.createElement('div');
+      cookieContent.className = 'cookie-content';
+      cookieContent.textContent = h.cookies || '无';
+      cookieBox.appendChild(cookieContent);
+
+      const actions = document.createElement('div');
+      actions.className = 'history-actions';
+      const convertBtn = document.createElement('button');
+      convertBtn.className = 'hist-btn primary btn-convert-hist';
+      convertBtn.textContent = '转为曲奇';
+      actions.appendChild(convertBtn);
+
+      item.appendChild(timeDiv);
+      item.appendChild(userRow);
+      item.appendChild(passRow);
+      item.appendChild(cookieBox);
+      item.appendChild(actions);
+      
+      // 绑定事件
+      cookieBox.querySelector('.btn-copy-hist').onclick = () => copyText(h.cookies);
+      convertBtn.onclick = () => convertHistory(i);
+
+      list.appendChild(item);
     });
   }
 
