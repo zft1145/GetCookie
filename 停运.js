@@ -62,7 +62,7 @@
         <p>因无可用密钥，<b>XTZ Cookie 即日起正式停止服务</b>。</p>
         <p>为回馈大家，我已将完整的全栈代码（含 Cloudflare Worker 后端与防作弊前端）开源。你可以自行部署属于你的版本。</p>
       </div>
-      <a href="https://github.com/你的GitHub用户名/你的仓库名" target="_blank" class="shutdown-link">前往 GitHub 获取源码</a>
+      <a href="https://github.com/ZFT1145/GetCookie" target="_blank" class="shutdown-link">前往 GitHub 获取源码</a>
       <div class="shutdown-footer">XTZ Cookie 开发者 · 2026.11</div>
     </div>
   `;
