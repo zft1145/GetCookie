@@ -3,8 +3,21 @@
 > 一个基于 Cloudflare 全家桶（Workers + KV + Pages）构建的全栈 Web 工具。包含设备指纹识别、动态额度分配、Cloudflare Turnstile 人机验证与完整的管理后台。
 
 ## 📢 项目背景与声明
-本项目最初为内部自用工具，后因上游 API 接口被封禁而停止运营。现将其全量开源，**仅供技术学习与交流（如 Cloudflare 边缘计算、防爬虫机制、Vue/原生 JS 开发等）**。
+本项目最初为内部自用工具，后因上游 API 接口被封禁而停止运营。现将其全量开源，**仅供技术学习与交流（如 Cloudflare 边缘计算、防爬虫机制、Vanilla JS 开发等）**。
 请勿将本项目用于任何商业或非法用途，因滥用代码导致的任何风控、封号或法律风险，由使用者自行承担。
+
+---
+
+## ⚠️ 极其重要的部署前置说明
+
+本仓库默认处于**“停运状态”**。前端 HTML 页面中引入了一个名为 `停运.js` 的文件，它会强制弹出一个停运公告，**阻止任何人使用该页面**。
+
+👉 **如果你想要部署并使用本项目，你必须执行以下操作：**
+1. 在 `index.html` 和 `admin.html` 的 `<head>` 标签中，**删除或注释掉** `<script src="停运.js"></script>` 这行代码。
+2. 直接**删除** `停运.js` 文件。
+3. 完成上述两步后，再进行后续的部署流程。
+
+---
 
 ## ✨ 核心特性
 
@@ -35,7 +48,7 @@
 
 ## 🚀 部署指南 (如何复活它)
 
-如果你想自己部署一套，请确保你有一个 Cloudflare 账号，并拥有有效且未被封禁的 `4399pc.cc` API Key。
+**前置条件**：确保你已经删除了 `停运.js` 及相关引用！并且你拥有有效且未被封禁的 `4399pc.cc` API Key。
 
 ### 1. 配置 Cloudflare KV
 1. 登录 Cloudflare 控制台，进入 `Workers & Pages` -> `KV`。
@@ -53,11 +66,10 @@
 ### 3. 配置 Turnstile (可选但强烈建议)
 1. 在 Cloudflare 控制台左侧找到 `Turnstile` 并添加站点。
 2. 获取 **Site Key** 和 **Secret Key**。
-3. 部署完成后，打开你的管理后台，填入这两个 Key。
 
 ### 4. 部署前端 (Cloudflare Pages)
 1. 在 Cloudflare Pages 中新建项目，选择连接到你的 GitHub 仓库。
-2. 将 `index.html`, `app.js`, `admin.html`, `admin.js` 放在根目录即可。
+2. 确保根目录包含修改后的 `index.html`, `app.js`, `admin.html`, `admin.js`。
 3. 部署前，请务必修改 `app.js` 和 `admin.js` 中的：
    ```javascript
    const WORKER_URL = "https://你的Worker域名";
