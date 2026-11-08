@@ -58,7 +58,7 @@
       <div class="shutdown-title">服务已停止运营</div>
       <div class="shutdown-desc">
         <p>亲爱的用户：</p>
-        <p>非常遗憾地通知大家，由于近期接口高频触发上游（4399pc.cc）风控，我们的 API Key 已被官方判定为异常并全面封禁。</p>
+        <p>非常遗憾地通知大家，由于近期接口触发上游风控，我们的 API Key 已被官方判定为异常并全面封禁。</p>
         <p>因无可用密钥，<b>XTZ Cookie 即日起正式停止服务</b>。</p>
         <p>为回馈大家，我已将完整的全栈代码（含 Cloudflare Worker 后端与防作弊前端）开源。你可以自行部署属于你的版本。</p>
       </div>
